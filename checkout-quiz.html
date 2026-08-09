@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <title>3-Dart Practice (Dartboard) — Dart Maths Trainer</title>
+  <title>Checkout Quiz — Dart Maths Trainer</title>
   <link rel="stylesheet" href="css/styles.css" />
 
   <!-- Google Fonts loaded non-render-blockingly: preload the
@@ -34,7 +34,7 @@
       <a href="index.html" class="home-link" aria-label="Back to home">←</a>
 
       <div class="app-header__title-block">
-        <span class="app-header__eyebrow">Addition Practice · Dartboard</span>
+        <span class="app-header__eyebrow">1-Dart Checkout Quiz</span>
         <h1 class="app-header__title">Dart Maths Trainer</h1>
       </div>
     </header>
@@ -66,17 +66,12 @@
       </div>
     </aside>
 
-    <!-- Main trainer card: everything needed for one question lives here -->
     <main class="trainer-card" id="trainer-card">
 
-      <div class="throws">
-        <span class="scoreboard__label">This visit</span>
-        <div class="dartboard-wrap">
-          <div id="dartboard-container"></div>
-        </div>
-      </div>
+      <p class="scoreboard__label">Score to check out</p>
+      <p class="checkout-quiz-score" id="quiz-score">40</p>
 
-      <p class="prompt">What's the total?</p>
+      <p class="prompt">Which dart finishes it?</p>
 
       <form id="answer-form" class="answer-form" autocomplete="off">
         <input
@@ -85,8 +80,8 @@
           readonly
           id="answer-input"
           class="answer-form__input"
-          placeholder="0"
-          aria-label="Total of the three throws"
+          placeholder="—"
+          aria-label="Your answer, e.g. D20 or Bull"
         />
 
         <!-- Shown in place of the input above once an answer is
@@ -98,68 +93,68 @@
           <p class="answer-result__working answer-result__working--emphasis" id="feedback-working"></p>
           <p class="answer-result__time" id="feedback-time"></p>
         </div>
+
+        <button type="submit" class="btn btn--primary" id="check-btn">Check</button>
       </form>
 
       <!--
-        Custom on-screen numpad: on mobile, the input above is
-        readonly (see js/practiceBoardUi.js) specifically so tapping it
-        never triggers the native OS keyboard, which would otherwise
-        eat half the screen. This numpad is the actual input method
-        on touch devices; a physical keyboard still works too via a
-        keydown listener on the (readonly) input itself.
-
-        Check/Next lives in the numpad grid itself (bottom-right,
-        after 0) rather than next to the answer box - freeing the
-        answer box to run the full width of the card, which it
-        needs for longer working-out lines (e.g. three trebles) to
-        fit on one line. It's still type="submit" and linked back
-        to the form above via the form="answer-form" attribute, so
-        Enter/clicking it behaves exactly as if it were inside the
-        <form>. Clear has been dropped to make room - backspace
-        (bottom-left) already covers correcting a mistake.
+        Custom checkout keypad: not a number pad. D/T are modifier
+        keys (toggle which one, if any, is active) - tapping a
+        number then applies that modifier, e.g. D active + tap 16
+        -> "D16". Bull is its own single key since it has no
+        single/double/treble variants in this app's notation.
       -->
-      <div class="numpad" id="numpad">
-        <button type="button" class="numpad__key" data-key="1">1</button>
-        <button type="button" class="numpad__key" data-key="2">2</button>
-        <button type="button" class="numpad__key" data-key="3">3</button>
-        <button type="button" class="numpad__key" data-key="4">4</button>
-        <button type="button" class="numpad__key" data-key="5">5</button>
-        <button type="button" class="numpad__key" data-key="6">6</button>
-        <button type="button" class="numpad__key" data-key="7">7</button>
-        <button type="button" class="numpad__key" data-key="8">8</button>
-        <button type="button" class="numpad__key" data-key="9">9</button>
-        <button type="button" class="numpad__key numpad__key--muted" data-key="backspace" aria-label="Backspace">⌫</button>
-        <button type="button" class="numpad__key" data-key="0">0</button>
-        <button type="submit" form="answer-form" class="numpad__key numpad__key--action" id="check-btn" aria-label="Check answer">✓</button>
+      <div class="checkout-keypad" id="checkout-keypad">
+        <div class="checkout-keypad__modifiers">
+          <button type="button" class="checkout-keypad__modifier" data-modifier="D">D</button>
+          <button type="button" class="checkout-keypad__modifier" data-modifier="T">T</button>
+        </div>
+
+        <div class="checkout-keypad__numbers">
+          <button type="button" class="checkout-keypad__key" data-number="1">1</button>
+          <button type="button" class="checkout-keypad__key" data-number="2">2</button>
+          <button type="button" class="checkout-keypad__key" data-number="3">3</button>
+          <button type="button" class="checkout-keypad__key" data-number="4">4</button>
+          <button type="button" class="checkout-keypad__key" data-number="5">5</button>
+          <button type="button" class="checkout-keypad__key" data-number="6">6</button>
+          <button type="button" class="checkout-keypad__key" data-number="7">7</button>
+          <button type="button" class="checkout-keypad__key" data-number="8">8</button>
+          <button type="button" class="checkout-keypad__key" data-number="9">9</button>
+          <button type="button" class="checkout-keypad__key" data-number="10">10</button>
+          <button type="button" class="checkout-keypad__key" data-number="11">11</button>
+          <button type="button" class="checkout-keypad__key" data-number="12">12</button>
+          <button type="button" class="checkout-keypad__key" data-number="13">13</button>
+          <button type="button" class="checkout-keypad__key" data-number="14">14</button>
+          <button type="button" class="checkout-keypad__key" data-number="15">15</button>
+          <button type="button" class="checkout-keypad__key" data-number="16">16</button>
+          <button type="button" class="checkout-keypad__key" data-number="17">17</button>
+          <button type="button" class="checkout-keypad__key" data-number="18">18</button>
+          <button type="button" class="checkout-keypad__key" data-number="19">19</button>
+          <button type="button" class="checkout-keypad__key" data-number="20">20</button>
+        </div>
+
+        <!-- Bull + Clear share one row instead of each getting a
+             full-width row of their own - saves a whole row of
+             vertical space, which matters on short phone screens
+             where this page's tall keypad is the main thing
+             pushing content below the fold. -->
+        <div class="checkout-keypad__actions">
+          <button type="button" class="checkout-keypad__key checkout-keypad__key--bull" data-bull="true">Bull</button>
+          <button type="button" class="checkout-keypad__key checkout-keypad__key--muted" data-clear="true">Clear</button>
+        </div>
       </div>
 
     </main>
 
   </div>
 
-  <!--
-    Loaded as plain scripts (not type="module") so the app works
-    when opened directly from disk or from any static server, with
-    no build step needed. Order matters: each file attaches to
-    window.DartsTrainer, and later files depend on earlier ones
-    being loaded first.
-
-    Shares random.js / timer.js / aimData.js / aimModel.js /
-    revealSequence.js / gameEngine.js / stats.js / dartboard.js with
-    the flip-square practice page unchanged - only practiceBoardUi.js
-    and practiceBoardMain.js are specific to this page (dartboard
-    display instead of flip squares).
-  -->
   <script src="js/random.js" defer></script>
   <script src="js/timer.js" defer></script>
-  <script src="js/aimData.js" defer></script>
-  <script src="js/aimModel.js" defer></script>
-  <script src="js/revealSequence.js" defer></script>
-  <script src="js/gameEngine.js" defer></script>
   <script src="js/stats.js" defer></script>
   <script src="js/lifetimeStats.js" defer></script>
-  <script src="js/dartboard.js" defer></script>
-  <script src="js/practiceBoardUi.js" defer></script>
-  <script src="js/practiceBoardMain.js" defer></script>
+  <script src="js/checkoutEngine.js" defer></script>
+  <script src="js/checkoutQuizEngine.js" defer></script>
+  <script src="js/checkoutQuizUi.js" defer></script>
+  <script src="js/checkoutQuizMain.js" defer></script>
 </body>
 </html>

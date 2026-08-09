@@ -24,6 +24,7 @@
     if (!window.DartsTrainer.revealSequence) missing.push('js/revealSequence.js');
     if (!window.DartsTrainer.gameEngine) missing.push('js/gameEngine.js');
     if (!window.DartsTrainer.StatsTracker) missing.push('js/stats.js');
+    if (!window.DartsTrainer.lifetimeStats) missing.push('js/lifetimeStats.js');
     if (!window.DartsTrainer.practiceUi) missing.push('js/practiceUi.js');
   }
 
@@ -39,8 +40,8 @@
     return;
   }
 
-  const { gameEngine, StatsTracker, Stopwatch, practiceUi, revealSequence } = window.DartsTrainer;
-  const { elements, renderQuestion, revealThrowSquare, enableAnswerInput, renderFeedback, renderStats } = practiceUi;
+  const { gameEngine, StatsTracker, Stopwatch, practiceUi, revealSequence, lifetimeStats } = window.DartsTrainer;
+  const { elements, renderQuestion, revealThrowSquare, enableAnswerInput, renderFeedback, renderStats, FLIP_TRANSITION_MS } = practiceUi;
 
   // --- App state ---
   const stats = new StatsTracker();
@@ -48,15 +49,19 @@
   let currentQuestion = null;
   let hasAnsweredCurrentQuestion = false;
   let cancelCurrentReveal = null; // cancels pending reveal timers, if any
+  let pendingStartTimer = null; // cancels a queued "start timer after flip finishes" call, if any
 
   /**
    * Starts a fresh question: generates 3 throws, renders the
    * face-down squares, then - once it's safe to do so - reveals
    * each throw one by one (2s apart). The answer input stays
-   * disabled and the timer doesn't start until all 3 are revealed.
+   * disabled and the timer doesn't start until the final throw's
+   * flip animation has actually finished playing (not just
+   * started) - see main.js for the fuller rationale.
    */
   function startNewQuestion() {
     if (cancelCurrentReveal) cancelCurrentReveal();
+    if (pendingStartTimer) clearTimeout(pendingStartTimer);
 
     currentQuestion = gameEngine.generateThrowsOnly();
     hasAnsweredCurrentQuestion = false;
@@ -65,9 +70,10 @@
       cancelCurrentReveal = revealSequence(currentQuestion.throws, {
         onReveal: (throwItem, index) => revealThrowSquare(index),
         onComplete: () => {
-          // Timer starts the moment the 3rd (final) throw is shown.
-          stopwatch.start();
-          enableAnswerInput();
+          pendingStartTimer = setTimeout(() => {
+            stopwatch.start();
+            enableAnswerInput();
+          }, FLIP_TRANSITION_MS);
         },
       });
     });
@@ -92,16 +98,12 @@
     const wasCorrect = gameEngine.checkAnswer(currentQuestion.visitScore, rawValue);
 
     stats.recordAnswer(wasCorrect, timeTakenSeconds);
+    lifetimeStats.recordAnswer('practice', wasCorrect, timeTakenSeconds);
+    if (wasCorrect) lifetimeStats.recordStreakProgress('practice', stats.currentStreak);
     renderStats(stats);
     renderFeedback(wasCorrect, currentQuestion, timeTakenSeconds);
 
     hasAnsweredCurrentQuestion = true;
-  }
-
-  /** Resets all session statistics back to zero. */
-  function handleResetStats() {
-    stats.reset();
-    renderStats(stats);
   }
 
   // --- Event wiring ---
@@ -111,7 +113,6 @@
   // fires the same 'submit' event that handleAnswerSubmit already
   // routes to startNewQuestion via hasAnsweredCurrentQuestion.
   elements.answerForm.addEventListener('submit', handleAnswerSubmit);
-  elements.resetStatsBtn.addEventListener('click', handleResetStats);
 
   // --- Boot ---
   renderStats(stats);

@@ -31,6 +31,7 @@
     if (!window.DartsTrainer.revealSequence) missing.push('js/revealSequence.js');
     if (!window.DartsTrainer.gameEngine) missing.push('js/gameEngine.js');
     if (!window.DartsTrainer.StatsTracker) missing.push('js/stats.js');
+    if (!window.DartsTrainer.lifetimeStats) missing.push('js/lifetimeStats.js');
     if (!window.DartsTrainer.ui) missing.push('js/ui.js');
   }
 
@@ -46,8 +47,8 @@
     return;
   }
 
-  const { gameEngine, StatsTracker, Stopwatch, ui, revealSequence } = window.DartsTrainer;
-  const { elements, renderQuestion, revealThrowSquare, enableAnswerInput, renderFeedback, renderStats } = ui;
+  const { gameEngine, StatsTracker, Stopwatch, ui, revealSequence, lifetimeStats } = window.DartsTrainer;
+  const { elements, renderQuestion, revealThrowSquare, enableAnswerInput, renderFeedback, renderStats, FLIP_TRANSITION_MS } = ui;
 
   // --- App state ---
   const stats = new StatsTracker();
@@ -55,17 +56,21 @@
   let currentQuestion = null;
   let hasAnsweredCurrentQuestion = false;
   let cancelCurrentReveal = null; // cancels pending reveal timers, if any
+  let pendingStartTimer = null; // cancels a queued "start timer after flip finishes" call, if any
 
   /**
    * Starts a fresh question: generates it, renders the starting
    * score and face-down throw squares, then - once it's safe to do
    * so (see renderQuestion/resetThrowSquares in ui.js) - reveals
    * each throw one by one (2s apart). The answer input stays
-   * disabled and the timer doesn't start until all 3 throws are
-   * revealed.
+   * disabled and the timer doesn't start until the final throw's
+   * flip animation has actually finished playing (not just
+   * started) - otherwise the player is charged for time they spent
+   * watching the card turn rather than reading/solving the question.
    */
   function startNewQuestion() {
     if (cancelCurrentReveal) cancelCurrentReveal();
+    if (pendingStartTimer) clearTimeout(pendingStartTimer);
 
     currentQuestion = gameEngine.generateQuestion();
     hasAnsweredCurrentQuestion = false;
@@ -74,9 +79,15 @@
       cancelCurrentReveal = revealSequence(currentQuestion.throws, {
         onReveal: (throwItem, index) => revealThrowSquare(index),
         onComplete: () => {
-          // Timer starts the moment the 3rd (final) throw is shown.
-          stopwatch.start();
-          enableAnswerInput();
+          // The final square has just started flipping - wait for
+          // that flip to actually finish (same duration as the CSS
+          // transition) before starting the clock or letting the
+          // player answer, so the reveal animation itself doesn't
+          // eat into their solving time.
+          pendingStartTimer = setTimeout(() => {
+            stopwatch.start();
+            enableAnswerInput();
+          }, FLIP_TRANSITION_MS);
         },
       });
     });
@@ -99,16 +110,12 @@
     const wasCorrect = gameEngine.checkAnswer(currentQuestion.remainingScore, rawValue);
 
     stats.recordAnswer(wasCorrect, timeTakenSeconds);
+    lifetimeStats.recordAnswer('game', wasCorrect, timeTakenSeconds);
+    if (wasCorrect) lifetimeStats.recordStreakProgress('game', stats.currentStreak);
     renderStats(stats);
     renderFeedback(wasCorrect, currentQuestion, timeTakenSeconds);
 
     hasAnsweredCurrentQuestion = true;
-  }
-
-  /** Resets all session statistics back to zero. */
-  function handleResetStats() {
-    stats.reset();
-    renderStats(stats);
   }
 
   // --- Event wiring ---
@@ -118,7 +125,6 @@
   // the same 'submit' event, which handleAnswerSubmit's
   // hasAnsweredCurrentQuestion branch already routes to startNewQuestion.
   elements.answerForm.addEventListener('submit', handleAnswerSubmit);
-  elements.resetStatsBtn.addEventListener('click', handleResetStats);
 
   // --- Boot ---
   renderStats(stats);

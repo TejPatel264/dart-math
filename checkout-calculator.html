@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Checkout Calculator — Dart Maths Trainer</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Google Fonts loaded non-render-blockingly: preload the
+       stylesheet in the background, then swap it in via onload.
+       The page renders immediately on the CSS system-font
+       fallbacks (see --font-display/--font-body/--font-mono in
+       styles.css) and the real fonts apply the moment they
+       arrive, instead of every navigation waiting on an external
+       network round-trip before showing anything. The <noscript>
+       fallback covers the rare case of JS being disabled. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+  </noscript>
+</head>
+<body>
+
+  <div class="app">
+
+    <header class="app-header">
+      <a href="index.html" class="home-link" aria-label="Back to home">←</a>
+
+      <div class="app-header__title-block">
+        <span class="app-header__eyebrow">Checkout Calculator</span>
+        <h1 class="app-header__title">Dart Maths Trainer</h1>
+      </div>
+    </header>
+
+    <!-- Main card: same shape as the counting-game pages, but the
+         "question" here is typed in by the user rather than
+         generated - a quick lookup tool for a live game, not a
+         maths quiz. -->
+    <main class="trainer-card" id="checkout-card">
+
+      <p class="prompt">What's the score?</p>
+
+      <form id="checkout-form" class="answer-form" autocomplete="off">
+        <input
+          type="text"
+          inputmode="none"
+          readonly
+          id="score-input"
+          class="answer-form__input"
+          placeholder="0"
+          aria-label="Score to check out"
+        />
+      </form>
+
+      <!-- Dart-count selector: exactly one of these three is
+           active at a time, same "pick one" interaction pattern as
+           the dartboard/practice toggles on the home page. Defaults
+           to 3 darts since that's the most common real-game
+           question ("can I finish this leg?"). -->
+      <div class="dart-selector" id="dart-selector" role="group" aria-label="Number of darts">
+        <button type="button" class="dart-selector__option" data-darts="1">1 dart</button>
+        <button type="button" class="dart-selector__option" data-darts="2">2 dart</button>
+        <button type="button" class="dart-selector__option dart-selector__option--active" data-darts="3">3 dart</button>
+      </div>
+
+      <!--
+        Custom on-screen numpad - same readonly-input pattern as
+        the counting games (see js/lifetimeStatsUi.js's neighbours
+        practiceUi.js etc.) so the native keyboard never covers the
+        UI on mobile. "View checkout" replaces the numeric "Check"
+        submit button from the counting games, since this page has
+        no right/wrong answer to grade.
+      -->
+      <div class="numpad" id="numpad">
+        <button type="button" class="numpad__key" data-key="1">1</button>
+        <button type="button" class="numpad__key" data-key="2">2</button>
+        <button type="button" class="numpad__key" data-key="3">3</button>
+        <button type="button" class="numpad__key" data-key="4">4</button>
+        <button type="button" class="numpad__key" data-key="5">5</button>
+        <button type="button" class="numpad__key" data-key="6">6</button>
+        <button type="button" class="numpad__key" data-key="7">7</button>
+        <button type="button" class="numpad__key" data-key="8">8</button>
+        <button type="button" class="numpad__key" data-key="9">9</button>
+        <button type="button" class="numpad__key numpad__key--muted" data-key="clear">C</button>
+        <button type="button" class="numpad__key" data-key="0">0</button>
+        <button type="button" class="numpad__key numpad__key--muted" data-key="backspace" aria-label="Backspace">⌫</button>
+      </div>
+
+      <button type="button" class="btn btn--primary btn--block" id="view-checkout-btn">View checkout</button>
+
+      <!-- Results area: hidden until "View checkout" is tapped -->
+      <div class="checkout-result" id="checkout-result" hidden>
+        <p class="checkout-result__impossible" id="checkout-impossible" hidden>Cannot checkout</p>
+        <div class="checkout-routes" id="checkout-routes"></div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="js/checkoutEngine.js" defer></script>
+  <script src="js/checkoutCalculatorMain.js" defer></script>
+</body>
+</html>

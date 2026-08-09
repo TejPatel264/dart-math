@@ -33,7 +33,7 @@ window.DartsTrainer = window.DartsTrainer || {};
     checkBtn: document.getElementById('check-btn'),
     numpad: document.getElementById('numpad'),
 
-    feedback: document.getElementById('feedback'),
+    answerResult: document.getElementById('answer-result'),
     feedbackResult: document.getElementById('feedback-result'),
     feedbackAddition: document.getElementById('feedback-addition'),
     feedbackSubtraction: document.getElementById('feedback-subtraction'),
@@ -43,44 +43,61 @@ window.DartsTrainer = window.DartsTrainer || {};
     statCorrect: document.getElementById('stat-correct'),
     statAccuracy: document.getElementById('stat-accuracy'),
     statAvgTime: document.getElementById('stat-avg-time'),
-    resetStatsBtn: document.getElementById('reset-stats-btn'),
+    statStreak: document.getElementById('stat-streak'),
   };
 
   /**
-   * Puts the page into "waiting for the reveal" state: input and
-   * numpad hidden/disabled, and the Check/Next button - the SAME
+   * Puts the page into "waiting for the reveal" state: input
+   * disabled and numpad dimmed/inert (but still visible - see
+   * .numpad--disabled), and the Check/Next button - the SAME
    * button throughout, just relabelled - is disabled too, since
    * there's nothing to do until all 3 throws are shown.
    */
   function setRevealing() {
+    elements.answerInput.hidden = false;
     elements.answerInput.disabled = true;
-    elements.numpad.hidden = true;
+    elements.answerResult.hidden = true;
+    elements.numpad.classList.add('numpad--disabled');
     elements.checkBtn.disabled = true;
-    elements.checkBtn.textContent = 'Check';
+    elements.checkBtn.textContent = '✓';
+    elements.checkBtn.setAttribute('aria-label', 'Check answer');
   }
 
   /** Puts the page into "ready to answer" state once the reveal finishes. */
   function setReadyToAnswer() {
+    elements.answerInput.hidden = false;
     elements.answerInput.disabled = false;
-    elements.numpad.hidden = false;
+    elements.answerResult.hidden = true;
+    elements.numpad.classList.remove('numpad--disabled');
     elements.checkBtn.disabled = false;
-    elements.checkBtn.textContent = 'Check';
+    elements.checkBtn.textContent = '✓';
+    elements.checkBtn.setAttribute('aria-label', 'Check answer');
   }
 
   /**
-   * Puts the page into "just answered" state: input and numpad lock
-   * again, but - unlike setRevealing - the button STAYS enabled and
-   * relabels itself "Next question". It's still the same <button
-   * type="submit">, so clicking it (or pressing Enter) fires the
-   * same form submit event as checking an answer does; main.js's
-   * existing "already answered -> advance instead" branch handles
-   * the rest, with no separate button or click listener needed.
+   * Puts the page into "just answered" state: the numpad dims/locks
+   * again (still visible, not hidden), and - unlike setRevealing -
+   * the button STAYS enabled and relabels itself "Next". It's still
+   * the same <button type="submit">, so clicking it (or pressing
+   * Enter) fires the same form submit event as checking an answer
+   * does; main.js's existing "already answered -> advance instead"
+   * branch handles the rest, with no separate button or click
+   * listener needed.
+   *
+   * The plain answer input is swapped out for the richer
+   * answerResult box in the same spot (see renderFeedback, which
+   * fills it in right before this runs) - showing the result THERE
+   * instead of in a separate block further down the page is what
+   * keeps the page from needing to scroll after every answer.
    */
   function setAnswered() {
+    elements.answerInput.hidden = true;
     elements.answerInput.disabled = true;
-    elements.numpad.hidden = true;
+    elements.answerResult.hidden = false;
+    elements.numpad.classList.add('numpad--disabled');
     elements.checkBtn.disabled = false;
-    elements.checkBtn.textContent = 'Next question →';
+    elements.checkBtn.textContent = '→';
+    elements.checkBtn.setAttribute('aria-label', 'Next question');
   }
 
   /**
@@ -158,8 +175,6 @@ window.DartsTrainer = window.DartsTrainer || {};
     clearAnswer();
     setRevealing();
 
-    elements.feedback.hidden = true;
-
     resetThrowSquares(question.throws, onReady);
   }
 
@@ -210,14 +225,16 @@ window.DartsTrainer = window.DartsTrainer || {};
     elements.answerInput.value = elements.answerInput.value.slice(0, -1);
   }
 
-  // Event delegation: one listener for all 12 numpad buttons.
+  // Event delegation: one listener for all number/backspace keys
+  // (Check/Next is a real <button type="submit">, not a data-key -
+  // see the HTML - so it's unaffected by this delegation and just
+  // submits the form natively).
   elements.numpad.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-key]');
     if (!button) return;
 
     const key = button.dataset.key;
-    if (key === 'clear') clearAnswer();
-    else if (key === 'backspace') removeLastDigit();
+    if (key === 'backspace') removeLastDigit();
     else appendDigit(key);
   });
 
@@ -235,18 +252,35 @@ window.DartsTrainer = window.DartsTrainer || {};
   });
 
   /**
-   * Renders the result of a checked answer.
+   * Renders the result of a checked answer, filling in the
+   * answerResult box that setAnswered() then swaps into view in
+   * place of the plain input.
    * @param {boolean} wasCorrect
    * @param {{throws: {notation: string, value: number}[], visitScore: number, remainingScore: number}} question
    * @param {number} timeTakenSeconds
    */
+  /**
+   * Formats one throw for the working-out line. Plain singles
+   * (notation is just digits, e.g. "20") don't need their value
+   * spelled out - the number already IS the value - so only
+   * doubles/trebles/bull (anything with a letter prefix, e.g.
+   * "T20", "D16", "Bull") get the "(value)" suffix, since those
+   * are the ones where the notation alone doesn't make the score
+   * obvious.
+   * @param {{notation: string, value: number}} throwItem
+   * @returns {string}
+   */
+  function formatThrow(throwItem) {
+    const isPlainSingle = /^\d+$/.test(throwItem.notation);
+    return isPlainSingle ? throwItem.notation : `${throwItem.notation} (${throwItem.value})`;
+  }
+
   function renderFeedback(wasCorrect, question, timeTakenSeconds) {
-    elements.feedback.hidden = false;
+    elements.answerResult.className = wasCorrect
+      ? 'answer-result answer-result--correct'
+      : 'answer-result answer-result--incorrect';
 
     elements.feedbackResult.textContent = wasCorrect ? 'Correct!' : 'Not quite';
-    elements.feedbackResult.className = wasCorrect
-      ? 'feedback__result feedback__result--correct'
-      : 'feedback__result feedback__result--incorrect';
 
     // Show both steps of the mental maths, always - not just when
     // wrong - since reinforcing the working is the whole point:
@@ -254,14 +288,15 @@ window.DartsTrainer = window.DartsTrainer || {};
     // score. These are two separate lines (not one run-on sentence)
     // so the subtraction - the actual answer to the question - is
     // impossible to miss.
-    const sumLine = question.throws.map((t) => `${t.notation} (${t.value})`).join(' + ');
+    const sumLine = question.throws.map(formatThrow).join(' + ');
     elements.feedbackAddition.textContent = `${sumLine} = ${question.visitScore}`;
     elements.feedbackSubtraction.textContent =
       `${question.startingScore} − ${question.visitScore} = ${question.remainingScore}`;
 
     elements.feedbackTime.textContent = `Answered in ${timeTakenSeconds.toFixed(2)}s`;
 
-    // Lock the input/numpad, but relabel the SAME Check button as
+    // Lock the numpad and swap the input for the answerResult box
+    // just filled in above, relabelling the SAME Check button as
     // "Next question" rather than showing a separate button below -
     // only one action is ever relevant at a time, so there's no need
     // for two buttons competing for space.
@@ -285,6 +320,10 @@ window.DartsTrainer = window.DartsTrainer || {};
 
     const avgTime = stats.getAverageTimeSeconds();
     elements.statAvgTime.textContent = avgTime === null ? '—' : `${avgTime.toFixed(2)}s`;
+
+    // Session streak: how many correct answers in a row right now.
+    // Resets to 0 the moment a wrong answer breaks it (see stats.js).
+    elements.statStreak.textContent = stats.currentStreak;
   }
 
   window.DartsTrainer.ui = {
@@ -295,5 +334,6 @@ window.DartsTrainer = window.DartsTrainer || {};
     renderFeedback,
     renderStats,
     focusAnswerInput,
+    FLIP_TRANSITION_MS,
   };
 })();

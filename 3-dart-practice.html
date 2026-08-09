@@ -4,46 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
   <title>3-Dart Practice — Dart Maths Trainer</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Google Fonts loaded non-render-blockingly: preload the
+       stylesheet in the background, then swap it in via onload.
+       The page renders immediately on the CSS system-font
+       fallbacks (see --font-display/--font-body/--font-mono in
+       styles.css) and the real fonts apply the moment they
+       arrive, instead of every navigation waiting on an external
+       network round-trip before showing anything. The <noscript>
+       fallback covers the rare case of JS being disabled. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+  </noscript>
 </head>
 <body>
 
   <div class="app">
 
     <header class="app-header">
-      <a href="index.html" class="home-link" data-transition aria-label="Back to home">←</a>
+      <a href="index.html" class="home-link" aria-label="Back to home">←</a>
 
       <div class="app-header__title-block">
         <span class="app-header__eyebrow">Addition Practice</span>
         <h1 class="app-header__title">Dart Maths Trainer</h1>
       </div>
-
-      <!-- Compact stats corner: a side piece, not the focus of the page -->
-      <aside class="stats-corner" id="stats-panel" aria-label="Session statistics">
-        <div class="stats-corner__grid">
-          <div class="stat">
-            <span class="stat__value" id="stat-answered">0</span>
-            <span class="stat__label">Answered</span>
-          </div>
-          <div class="stat">
-            <span class="stat__value" id="stat-correct">0</span>
-            <span class="stat__label">Correct</span>
-          </div>
-          <div class="stat">
-            <span class="stat__value" id="stat-accuracy">—</span>
-            <span class="stat__label">Accuracy</span>
-          </div>
-          <div class="stat">
-            <span class="stat__value" id="stat-avg-time">—</span>
-            <span class="stat__label">Avg time</span>
-          </div>
-        </div>
-        <button type="button" class="stats-corner__reset" id="reset-stats-btn">Reset</button>
-      </aside>
     </header>
+
+    <!-- Session stats: one flattened full-width row instead of a
+         boxed corner next to the title - trims vertical space, and
+         drops the per-session reset control (lifetime stats, which
+         matter longer-term, have their own reset on that page). -->
+    <aside class="stats-bar" id="stats-panel" aria-label="Session statistics">
+      <div class="stat">
+        <span class="stat__value" id="stat-answered">0</span>
+        <span class="stat__label">Answered</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value" id="stat-correct">0</span>
+        <span class="stat__label">Correct</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value" id="stat-accuracy">—</span>
+        <span class="stat__label">Accuracy</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value" id="stat-avg-time">—</span>
+        <span class="stat__label">Avg time</span>
+      </div>
+      <div class="stat">
+        <span class="stat__value" id="stat-streak">0</span>
+        <span class="stat__label">Streak</span>
+      </div>
+    </aside>
 
     <!-- Main trainer card: everything needed for one question lives here -->
     <main class="trainer-card" id="trainer-card">
@@ -84,7 +105,16 @@
           placeholder="0"
           aria-label="Total of the three throws"
         />
-        <button type="submit" class="btn btn--primary" id="check-btn">Check</button>
+
+        <!-- Shown in place of the input above once an answer is
+             checked, instead of a separate block further down the
+             page - see the .answer-result rule in styles.css for
+             why. -->
+        <div class="answer-result" id="answer-result" hidden>
+          <p class="answer-result__headline" id="feedback-result"></p>
+          <p class="answer-result__working answer-result__working--emphasis" id="feedback-working"></p>
+          <p class="answer-result__time" id="feedback-time"></p>
+        </div>
       </form>
 
       <!--
@@ -94,6 +124,16 @@
         eat half the screen. This numpad is the actual input method
         on touch devices; a physical keyboard still works too via a
         keydown listener on the (readonly) input itself.
+
+        Check/Next lives in the numpad grid itself (bottom-right,
+        after 0) rather than next to the answer box - freeing the
+        answer box to run the full width of the card, which it
+        needs for longer working-out lines (e.g. three trebles) to
+        fit on one line. It's still type="submit" and linked back
+        to the form above via the form="answer-form" attribute, so
+        Enter/clicking it behaves exactly as if it were inside the
+        <form>. Clear has been dropped to make room - backspace
+        (bottom-left) already covers correcting a mistake.
       -->
       <div class="numpad" id="numpad">
         <button type="button" class="numpad__key" data-key="1">1</button>
@@ -105,16 +145,9 @@
         <button type="button" class="numpad__key" data-key="7">7</button>
         <button type="button" class="numpad__key" data-key="8">8</button>
         <button type="button" class="numpad__key" data-key="9">9</button>
-        <button type="button" class="numpad__key numpad__key--muted" data-key="clear">C</button>
-        <button type="button" class="numpad__key" data-key="0">0</button>
         <button type="button" class="numpad__key numpad__key--muted" data-key="backspace" aria-label="Backspace">⌫</button>
-      </div>
-
-      <!-- Feedback area: hidden until an answer has been submitted -->
-      <div class="feedback" id="feedback" hidden>
-        <p class="feedback__result" id="feedback-result"></p>
-        <p class="feedback__working feedback__working--emphasis" id="feedback-working"></p>
-        <p class="feedback__time" id="feedback-time"></p>
+        <button type="button" class="numpad__key" data-key="0">0</button>
+        <button type="submit" form="answer-form" class="numpad__key numpad__key--action" id="check-btn" aria-label="Check answer">✓</button>
       </div>
 
     </main>
@@ -134,15 +167,15 @@
     specific to this page's simpler DOM (no starting score / no
     subtraction step).
   -->
-  <script src="js/pageTransition.js"></script>
-  <script src="js/random.js"></script>
-  <script src="js/timer.js"></script>
-  <script src="js/aimData.js"></script>
-  <script src="js/aimModel.js"></script>
-  <script src="js/revealSequence.js"></script>
-  <script src="js/gameEngine.js"></script>
-  <script src="js/stats.js"></script>
-  <script src="js/practiceUi.js"></script>
-  <script src="js/practiceMain.js"></script>
+  <script src="js/random.js" defer></script>
+  <script src="js/timer.js" defer></script>
+  <script src="js/aimData.js" defer></script>
+  <script src="js/aimModel.js" defer></script>
+  <script src="js/revealSequence.js" defer></script>
+  <script src="js/gameEngine.js" defer></script>
+  <script src="js/stats.js" defer></script>
+  <script src="js/lifetimeStats.js" defer></script>
+  <script src="js/practiceUi.js" defer></script>
+  <script src="js/practiceMain.js" defer></script>
 </body>
 </html>

@@ -21,6 +21,12 @@ window.DartsTrainer = window.DartsTrainer || {};
   const MAX_ANSWER_DIGITS = 3; // a 3-dart visit tops out at 180 (T20+T20+T20)
   const BOARD_SIZE = 190; // sane default; actual rendered size is controlled responsively via CSS clamp()
 
+  // Must match the CSS animation duration on .dartboard-dart's
+  // dart-land keyframes (see styles.css). Used to know when the
+  // final dart's landing animation has actually finished, so the
+  // timer doesn't start until the player can actually see it.
+  const DART_LAND_MS = 220;
+
   // --- Element references, grabbed once ---
   const elements = {
     dartboardContainer: document.getElementById('dartboard-container'),
@@ -30,7 +36,7 @@ window.DartsTrainer = window.DartsTrainer || {};
     checkBtn: document.getElementById('check-btn'),
     numpad: document.getElementById('numpad'),
 
-    feedback: document.getElementById('feedback'),
+    answerResult: document.getElementById('answer-result'),
     feedbackResult: document.getElementById('feedback-result'),
     feedbackWorking: document.getElementById('feedback-working'),
     feedbackTime: document.getElementById('feedback-time'),
@@ -39,7 +45,7 @@ window.DartsTrainer = window.DartsTrainer || {};
     statCorrect: document.getElementById('stat-correct'),
     statAccuracy: document.getElementById('stat-accuracy'),
     statAvgTime: document.getElementById('stat-avg-time'),
-    resetStatsBtn: document.getElementById('reset-stats-btn'),
+    statStreak: document.getElementById('stat-streak'),
   };
 
   // The board is built once and reused across questions - only the
@@ -52,30 +58,42 @@ window.DartsTrainer = window.DartsTrainer || {};
 
   /** Puts the page into "waiting for the reveal" state. */
   function setRevealing() {
+    elements.answerInput.hidden = false;
     elements.answerInput.disabled = true;
-    elements.numpad.hidden = true;
+    elements.answerResult.hidden = true;
+    elements.numpad.classList.add('numpad--disabled');
     elements.checkBtn.disabled = true;
-    elements.checkBtn.textContent = 'Check';
+    elements.checkBtn.textContent = '✓';
+    elements.checkBtn.setAttribute('aria-label', 'Check answer');
   }
 
   /** Puts the page into "ready to answer" state once the reveal finishes. */
   function setReadyToAnswer() {
+    elements.answerInput.hidden = false;
     elements.answerInput.disabled = false;
-    elements.numpad.hidden = false;
+    elements.answerResult.hidden = true;
+    elements.numpad.classList.remove('numpad--disabled');
     elements.checkBtn.disabled = false;
-    elements.checkBtn.textContent = 'Check';
+    elements.checkBtn.textContent = '✓';
+    elements.checkBtn.setAttribute('aria-label', 'Check answer');
   }
 
   /**
-   * Puts the page into "just answered" state: input/numpad lock
-   * again, but the SAME button stays enabled and relabels itself
-   * "Next question" (see ui.js for the fuller rationale).
+   * Puts the page into "just answered" state: numpad dims/locks
+   * again (still visible, not hidden), but the SAME button stays
+   * enabled and relabels itself "Next" (see ui.js for the fuller
+   * rationale). The plain input is swapped for the answerResult box
+   * in the same spot, so the result shows there instead of pushing
+   * new content further down the page.
    */
   function setAnswered() {
+    elements.answerInput.hidden = true;
     elements.answerInput.disabled = true;
-    elements.numpad.hidden = true;
+    elements.answerResult.hidden = false;
+    elements.numpad.classList.add('numpad--disabled');
     elements.checkBtn.disabled = false;
-    elements.checkBtn.textContent = 'Next question →';
+    elements.checkBtn.textContent = '→';
+    elements.checkBtn.setAttribute('aria-label', 'Next question');
   }
 
   /** Moves keyboard focus to the answer input (safe on mobile - see index.html/readonly). */
@@ -94,7 +112,6 @@ window.DartsTrainer = window.DartsTrainer || {};
   function renderQuestion(question, onReady) {
     clearAnswer();
     setRevealing();
-    elements.feedback.hidden = true;
 
     window.DartsTrainer.dartboard.clearDarts(board);
     placedPositions = [];
@@ -152,14 +169,16 @@ window.DartsTrainer = window.DartsTrainer || {};
     elements.answerInput.value = elements.answerInput.value.slice(0, -1);
   }
 
-  // Event delegation: one listener for all 12 numpad buttons.
+  // Event delegation: one listener for all number/backspace keys
+  // (Check/Next is a real <button type="submit">, not a data-key -
+  // see the HTML - so it's unaffected by this delegation and just
+  // submits the form natively).
   elements.numpad.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-key]');
     if (!button) return;
 
     const key = button.dataset.key;
-    if (key === 'clear') clearAnswer();
-    else if (key === 'backspace') removeLastDigit();
+    if (key === 'backspace') removeLastDigit();
     else appendDigit(key);
   });
 
@@ -182,14 +201,18 @@ window.DartsTrainer = window.DartsTrainer || {};
    * @param {number} timeTakenSeconds
    */
   function renderFeedback(wasCorrect, question, timeTakenSeconds) {
-    elements.feedback.hidden = false;
+    elements.answerResult.className = wasCorrect
+      ? 'answer-result answer-result--correct'
+      : 'answer-result answer-result--incorrect';
 
     elements.feedbackResult.textContent = wasCorrect ? 'Correct!' : 'Not quite';
-    elements.feedbackResult.className = wasCorrect
-      ? 'feedback__result feedback__result--correct'
-      : 'feedback__result feedback__result--incorrect';
 
-    const sumLine = question.throws.map((t) => `${t.notation} (${t.value})`).join(' + ');
+    // Plain singles (notation is just digits, e.g. "20") don't need
+    // their value spelled out - only doubles/trebles/bull (a letter
+    // prefix, e.g. "T20") get the "(value)" suffix.
+    const sumLine = question.throws
+      .map((t) => (/^\d+$/.test(t.notation) ? t.notation : `${t.notation} (${t.value})`))
+      .join(' + ');
     elements.feedbackWorking.textContent = `${sumLine} = ${question.visitScore}`;
 
     elements.feedbackTime.textContent = `Answered in ${timeTakenSeconds.toFixed(2)}s`;
@@ -211,6 +234,10 @@ window.DartsTrainer = window.DartsTrainer || {};
 
     const avgTime = stats.getAverageTimeSeconds();
     elements.statAvgTime.textContent = avgTime === null ? '—' : `${avgTime.toFixed(2)}s`;
+
+    // Session streak: how many correct answers in a row right now.
+    // Resets to 0 the moment a wrong answer breaks it (see stats.js).
+    elements.statStreak.textContent = stats.currentStreak;
   }
 
   window.DartsTrainer.practiceBoardUi = {
@@ -221,5 +248,6 @@ window.DartsTrainer = window.DartsTrainer || {};
     renderFeedback,
     renderStats,
     focusAnswerInput,
+    DART_LAND_MS,
   };
 })();

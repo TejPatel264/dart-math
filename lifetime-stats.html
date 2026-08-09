@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Lifetime Stats — Dart Maths Trainer</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Google Fonts loaded non-render-blockingly: preload the
+       stylesheet in the background, then swap it in via onload.
+       The page renders immediately on the CSS system-font
+       fallbacks (see --font-display/--font-body/--font-mono in
+       styles.css) and the real fonts apply the moment they
+       arrive, instead of every navigation waiting on an external
+       network round-trip before showing anything. The <noscript>
+       fallback covers the rare case of JS being disabled. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+  </noscript>
+</head>
+<body>
+
+  <div class="app">
+
+    <header class="app-header">
+      <a href="index.html" class="home-link" aria-label="Back to home">←</a>
+
+      <div class="app-header__title-block">
+        <span class="app-header__eyebrow">Lifetime Progress</span>
+        <h1 class="app-header__title">Dart Maths Trainer</h1>
+      </div>
+    </header>
+
+    <main class="trainer-card">
+
+      <!-- Play Streak: consecutive calendar days with at least one
+           question answered in ANY mode - a different kind of stat
+           to the per-mode breakdown below (it's about showing up,
+           not about any one game), so it gets its own banner. -->
+      <section class="play-streak" id="play-streak" aria-label="Play streak">
+        <div class="play-streak__current">
+          <span class="play-streak__flame" aria-hidden="true">🔥</span>
+          <div class="play-streak__current-text">
+            <span class="play-streak__value" id="play-streak-current">0</span>
+            <span class="play-streak__label">Day Play Streak</span>
+          </div>
+        </div>
+        <div class="play-streak__best">
+          <span class="play-streak__best-value" id="play-streak-best">0</span>
+          <span class="play-streak__best-label">Best</span>
+        </div>
+      </section>
+
+      <!-- Combined totals across every mode - the headline number. -->
+      <section class="lifetime-summary" id="lifetime-summary" aria-label="Combined lifetime statistics">
+        <div class="lifetime-summary__grid">
+          <div class="lifetime-summary__stat">
+            <span class="lifetime-summary__value" id="summary-answered">0</span>
+            <span class="lifetime-summary__label">Total Questions</span>
+          </div>
+          <div class="lifetime-summary__stat">
+            <span class="lifetime-summary__value" id="summary-accuracy">—</span>
+            <span class="lifetime-summary__label">Accuracy</span>
+          </div>
+          <div class="lifetime-summary__stat">
+            <span class="lifetime-summary__value" id="summary-avg-time">—</span>
+            <span class="lifetime-summary__label">Avg Time</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Per-mode breakdown, populated by lifetimeStatsUi.js -->
+      <section class="lifetime-modes" id="lifetime-modes" aria-label="Statistics by game mode">
+        <!-- .lifetime-mode-card elements injected here -->
+      </section>
+
+      <button type="button" class="lifetime-reset-btn" id="lifetime-reset-btn">
+        Reset all lifetime stats
+      </button>
+
+    </main>
+
+  </div>
+
+  <script src="js/lifetimeStats.js" defer></script>
+  <script src="js/lifetimeStatsUi.js" defer></script>
+</body>
+</html>

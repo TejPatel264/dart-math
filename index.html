@@ -4,10 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
   <title>Dart Maths Trainer</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Google Fonts loaded non-render-blockingly: preload the
+       stylesheet in the background, then swap it in via onload.
+       The page renders immediately on the CSS system-font
+       fallbacks (see --font-display/--font-body/--font-mono in
+       styles.css) and the real fonts apply the moment they
+       arrive, instead of every navigation waiting on an external
+       network round-trip before showing anything. The <noscript>
+       fallback covers the rare case of JS being disabled. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+  </noscript>
 </head>
 <body>
 
@@ -21,42 +38,102 @@
     </header>
 
     <!-- Mode menu: reuses the trainer-card look so the home page
-         feels like part of the same app, not a separate site. -->
-    <main class="trainer-card" id="mode-select-card">
+         feels like part of the same app, not a separate site.
+         Stretched to fill the remaining viewport height below the
+         header (see .trainer-card--fill in styles.css), so the
+         button list reads as a complete, deliberately-composed
+         screen rather than a short stack floating at the top with
+         empty space beneath it.
+
+         Every button here is a single full-width row with left-
+         aligned text - the split-pill pattern (two destinations
+         sharing one row) that used to live here for "flip-cards vs
+         dartboard" and "1/2/3-dart" has been replaced by dedicated
+         picker pages (game-picker.html, practice-picker.html,
+         checkout-quiz-picker.html) instead, for two reasons: it
+         keeps every button on this page the same shape (genuine
+         consistency, not "consistent except when it's a pill"),
+         and it scales cleanly as more variants/difficulties get
+         added later without needing an ever-more-cramped pill. -->
+    <main class="trainer-card trainer-card--fill" id="mode-select-card">
+
+      <!-- Section divider: labels this whole first group as the
+           mental-maths/scoring games, mirroring the "Checkouts"
+           label further down - without it, the page opened with an
+           unlabelled group followed by a labelled one, which read
+           as inconsistent. -->
+      <div class="mode-divider" role="separator">
+        <span class="mode-divider__label">Scoring</span>
+      </div>
+
       <div class="mode-menu">
         <button type="button" class="mode-button mode-button--disabled" disabled>
           <span class="mode-button__title">1-Dart Game</span>
           <span class="mode-button__badge">Coming soon</span>
         </button>
 
-        <!-- Split "pill": one connected shape, two destinations -
-             the flip-square practice mode on the left, the
-             dartboard variant on the right. -->
-        <div class="mode-pill">
-          <a href="3-dart-practice.html" class="mode-pill__half" data-transition>3-Dart Practice</a>
-          <span class="mode-pill__divider" aria-hidden="true"></span>
-          <a href="3-dart-practice-board.html" class="mode-pill__half" data-transition>With Dartboard</a>
-        </div>
+        <a href="practice-picker.html" class="mode-button">
+          <span class="mode-button__title">3-Dart Practice</span>
+        </a>
 
-        <!-- Split "pill": one connected shape, two destinations -
-             the flip-square game on the left, the dartboard
-             variant on the right. -->
-        <div class="mode-pill">
-          <a href="three-dart-game.html" class="mode-pill__half" data-transition>3-Dart Game</a>
-          <span class="mode-pill__divider" aria-hidden="true"></span>
-          <a href="three-dart-game-board.html" class="mode-pill__half" data-transition>With Dartboard</a>
-        </div>
+        <a href="game-picker.html" class="mode-button">
+          <span class="mode-button__title">3-Dart Game</span>
+        </a>
+      </div>
+
+      <!-- Section divider: the counting/maths games above are one
+           family of tools, the checkout helpers below are a
+           different one (not about mental-maths practice, but a
+           quick real-time reference) - a labelled rule keeps that
+           distinction clear without needing a whole new page. -->
+      <div class="mode-divider" role="separator">
+        <span class="mode-divider__label">Checkouts</span>
+      </div>
+
+      <div class="mode-menu">
+        <a href="checkout-quiz-picker.html" class="mode-button">
+          <span class="mode-button__title">Checkout Quiz</span>
+        </a>
+
+        <a href="checkout-calculator.html" class="mode-button">
+          <span class="mode-button__title">Checkout Calculator</span>
+        </a>
+      </div>
+
+      <div class="mode-divider" role="separator" aria-hidden="true"></div>
+
+      <div class="mode-menu" id="continue-prompt">
+        <!-- js/continuePrompt.js appends a "Continue with X" button
+             here, but only once lifetime stats shows the player has
+             actually played something - see that file. Absent
+             entirely on a first visit rather than an empty slot. -->
+
+        <!-- Same white-button shape as everything else, but gold -
+             keeps "view my progress" visually distinct from
+             "start playing" while staying consistent in shape. -->
+        <a href="lifetime-stats.html" class="mode-button mode-button--gold">
+          <span class="mode-button__title">
+            <span class="mode-button__icon" data-icon="statsChart"></span>
+            Lifetime Stats
+          </span>
+        </a>
       </div>
     </main>
 
   </div>
 
   <!--
-    pageTransition.js is the only script this page needs - it's
-    generic and shared with three-dart-game.html, handling the
-    simple fade transition between pages. Nothing else on the home
-    page depends on darts-specific logic.
+    The only scripts the home page needs: everything else here is a
+    plain <a href>, working with zero JS. continuePrompt.js is the
+    one exception, since "what has this player played most" is
+    inherently dynamic data that can't be baked into static HTML;
+    pickerIcons.js/pickerIconsInit.js render the small stats-chart
+    icon on the Lifetime Stats button the same declarative way the
+    picker pages render theirs (see those files).
   -->
-  <script src="js/pageTransition.js"></script>
+  <script src="js/lifetimeStats.js" defer></script>
+  <script src="js/continuePrompt.js" defer></script>
+  <script src="js/pickerIcons.js" defer></script>
+  <script src="js/pickerIconsInit.js" defer></script>
 </body>
 </html>

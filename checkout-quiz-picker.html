@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Checkout Quiz — Dart Maths Trainer</title>
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <!-- Google Fonts loaded non-render-blockingly: preload the
+       stylesheet in the background, then swap it in via onload.
+       The page renders immediately on the CSS system-font
+       fallbacks (see --font-display/--font-body/--font-mono in
+       styles.css) and the real fonts apply the moment they
+       arrive, instead of every navigation waiting on an external
+       network round-trip before showing anything. The <noscript>
+       fallback covers the rare case of JS being disabled. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" />
+  </noscript>
+</head>
+<body>
+
+  <div class="app">
+
+    <header class="app-header">
+      <a href="index.html" class="home-link" aria-label="Back to home">←</a>
+
+      <div class="app-header__title-block">
+        <span class="app-header__eyebrow">Choose a Difficulty</span>
+        <h1 class="app-header__title">Checkout Quiz</h1>
+      </div>
+    </header>
+
+    <!--
+      Picker page - same pattern as game-picker.html/practice-
+      picker.html, just with 3 options (dart count) instead of 2
+      (visual style). 2-dart and 3-dart don't exist yet, so they're
+      real disabled <a>-turned-<button>s here, same "not ready"
+      language as .mode-button--disabled on the home page.
+    -->
+    <main class="trainer-card trainer-card--fill" id="picker-card">
+      <div class="picker-cards">
+        <a href="checkout-quiz.html" class="picker-card">
+          <span class="picker-card__icon" data-icon="dartGroup" data-icon-count="1"></span>
+          <span class="picker-card__title">1-Dart</span>
+          <span class="picker-card__description">Every score checkoutable with a single dart - the fastest way to drill doubles.</span>
+        </a>
+        <button type="button" class="picker-card picker-card--disabled" disabled>
+          <span class="picker-card__icon" data-icon="dartGroup" data-icon-count="2"></span>
+          <span class="picker-card__title">2-Dart</span>
+          <span class="picker-card__description">Two-dart finishes, including setting up a leave for the double.</span>
+          <span class="picker-card__badge">Coming soon</span>
+        </button>
+        <button type="button" class="picker-card picker-card--disabled" disabled>
+          <span class="picker-card__icon" data-icon="dartGroup" data-icon-count="3"></span>
+          <span class="picker-card__title">3-Dart</span>
+          <span class="picker-card__description">Full 3-dart checkout routes, same routing logic as the calculator.</span>
+          <span class="picker-card__badge">Coming soon</span>
+        </button>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="js/pickerIcons.js" defer></script>
+  <script src="js/pickerIconsInit.js" defer></script>
+</body>
+</html>
