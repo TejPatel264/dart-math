@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>3-Dart Practice (Dartboard) — Dart Maths Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <header class="app-header">
+      <a href="index.html" class="home-link" data-transition aria-label="Back to home">←</a>
+
+      <div class="app-header__title-block">
+        <span class="app-header__eyebrow">Addition Practice · Dartboard</span>
+        <h1 class="app-header__title">Dart Maths Trainer</h1>
+      </div>
+
+      <!-- Compact stats corner: a side piece, not the focus of the page -->
+      <aside class="stats-corner" id="stats-panel" aria-label="Session statistics">
+        <div class="stats-corner__grid">
+          <div class="stat">
+            <span class="stat__value" id="stat-answered">0</span>
+            <span class="stat__label">Answered</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-correct">0</span>
+            <span class="stat__label">Correct</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-accuracy">—</span>
+            <span class="stat__label">Accuracy</span>
+          </div>
+          <div class="stat">
+            <span class="stat__value" id="stat-avg-time">—</span>
+            <span class="stat__label">Avg time</span>
+          </div>
+        </div>
+        <button type="button" class="stats-corner__reset" id="reset-stats-btn">Reset</button>
+      </aside>
+    </header>
+
+    <!-- Main trainer card: everything needed for one question lives here -->
+    <main class="trainer-card" id="trainer-card">
+
+      <div class="throws">
+        <span class="scoreboard__label">This visit</span>
+        <div class="dartboard-wrap">
+          <div id="dartboard-container"></div>
+        </div>
+      </div>
+
+      <p class="prompt">What's the total?</p>
+
+      <form id="answer-form" class="answer-form" autocomplete="off">
+        <input
+          type="text"
+          inputmode="none"
+          readonly
+          id="answer-input"
+          class="answer-form__input"
+          placeholder="0"
+          aria-label="Total of the three throws"
+        />
+        <button type="submit" class="btn btn--primary" id="check-btn">Check</button>
+      </form>
+
+      <!--
+        Custom on-screen numpad: on mobile, the input above is
+        readonly (see js/practiceBoardUi.js) specifically so tapping it
+        never triggers the native OS keyboard, which would otherwise
+        eat half the screen. This numpad is the actual input method
+        on touch devices; a physical keyboard still works too via a
+        keydown listener on the (readonly) input itself.
+      -->
+      <div class="numpad" id="numpad">
+        <button type="button" class="numpad__key" data-key="1">1</button>
+        <button type="button" class="numpad__key" data-key="2">2</button>
+        <button type="button" class="numpad__key" data-key="3">3</button>
+        <button type="button" class="numpad__key" data-key="4">4</button>
+        <button type="button" class="numpad__key" data-key="5">5</button>
+        <button type="button" class="numpad__key" data-key="6">6</button>
+        <button type="button" class="numpad__key" data-key="7">7</button>
+        <button type="button" class="numpad__key" data-key="8">8</button>
+        <button type="button" class="numpad__key" data-key="9">9</button>
+        <button type="button" class="numpad__key numpad__key--muted" data-key="clear">C</button>
+        <button type="button" class="numpad__key" data-key="0">0</button>
+        <button type="button" class="numpad__key numpad__key--muted" data-key="backspace" aria-label="Backspace">⌫</button>
+      </div>
+
+      <!-- Feedback area: hidden until an answer has been submitted -->
+      <div class="feedback" id="feedback" hidden>
+        <p class="feedback__result" id="feedback-result"></p>
+        <p class="feedback__working feedback__working--emphasis" id="feedback-working"></p>
+        <p class="feedback__time" id="feedback-time"></p>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!--
+    Loaded as plain scripts (not type="module") so the app works
+    when opened directly from disk or from any static server, with
+    no build step needed. Order matters: each file attaches to
+    window.DartsTrainer, and later files depend on earlier ones
+    being loaded first.
+
+    Shares random.js / timer.js / aimData.js / aimModel.js /
+    revealSequence.js / gameEngine.js / stats.js / dartboard.js with
+    the flip-square practice page unchanged - only practiceBoardUi.js
+    and practiceBoardMain.js are specific to this page (dartboard
+    display instead of flip squares).
+  -->
+  <script src="js/pageTransition.js"></script>
+  <script src="js/random.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/aimData.js"></script>
+  <script src="js/aimModel.js"></script>
+  <script src="js/revealSequence.js"></script>
+  <script src="js/gameEngine.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/dartboard.js"></script>
+  <script src="js/practiceBoardUi.js"></script>
+  <script src="js/practiceBoardMain.js"></script>
+</body>
+</html>

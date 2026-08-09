@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>Dart Maths Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <header class="app-header">
+      <div class="app-header__title-block">
+        <span class="app-header__eyebrow">Choose a Mode</span>
+        <h1 class="app-header__title">Dart Maths Trainer</h1>
+      </div>
+    </header>
+
+    <!-- Mode menu: reuses the trainer-card look so the home page
+         feels like part of the same app, not a separate site. -->
+    <main class="trainer-card" id="mode-select-card">
+      <div class="mode-menu">
+        <button type="button" class="mode-button mode-button--disabled" disabled>
+          <span class="mode-button__title">1-Dart Game</span>
+          <span class="mode-button__badge">Coming soon</span>
+        </button>
+
+        <!-- Split "pill": one connected shape, two destinations -
+             the flip-square practice mode on the left, the
+             dartboard variant on the right. -->
+        <div class="mode-pill">
+          <a href="3-dart-practice.html" class="mode-pill__half" data-transition>3-Dart Practice</a>
+          <span class="mode-pill__divider" aria-hidden="true"></span>
+          <a href="3-dart-practice-board.html" class="mode-pill__half" data-transition>With Dartboard</a>
+        </div>
+
+        <!-- Split "pill": one connected shape, two destinations -
+             the flip-square game on the left, the dartboard
+             variant on the right. -->
+        <div class="mode-pill">
+          <a href="three-dart-game.html" class="mode-pill__half" data-transition>3-Dart Game</a>
+          <span class="mode-pill__divider" aria-hidden="true"></span>
+          <a href="three-dart-game-board.html" class="mode-pill__half" data-transition>With Dartboard</a>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!--
+    pageTransition.js is the only script this page needs - it's
+    generic and shared with three-dart-game.html, handling the
+    simple fade transition between pages. Nothing else on the home
+    page depends on darts-specific logic.
+  -->
+  <script src="js/pageTransition.js"></script>
+</body>
+</html>
