@@ -1,0 +1,1680 @@
+/* =========================================================
+   DESIGN TOKENS
+   Palette pulled directly from a physical dartboard: the
+   black/cream number segments, the red and green treble/double
+   rings, and the brass wire that separates them. The page
+   background stands in for the dark cabinet surround, so the
+   cream scoring card reads like the board itself.
+   ========================================================= */
+:root {
+  --color-bg: #17140F;            /* cabinet surround - near-black */
+  --color-surface: #F3ECD8;       /* cream number segment - hero card */
+  --color-surface-dim: #E7DEC4;
+  --color-ink: #1C1A15;           /* near-black text on cream */
+  --color-ink-dim: #6E6555;
+
+  --color-red: #B3272C;           /* dartboard red segment */
+  --color-green: #0F6B45;         /* dartboard green segment */
+  --color-green-dark: #0B5136;
+  --color-gold: #C7A34B;          /* brass wire */
+
+  --color-chalk: #F3ECD8;         /* light text on dark background */
+  --color-chalk-dim: #A79E8B;
+
+  --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+
+  --radius-lg: 22px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+}
+
+/* =========================================================
+   RESET & BASE
+   ========================================================= */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(199, 163, 75, 0.10), transparent 45%),
+    var(--color-bg);
+  color: var(--color-chalk);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  justify-content: center;
+  /* Pure CSS fade-in - runs on every page load with no JS
+     dependency, so the page is never stuck invisible if a script
+     fails to load. (There used to be a matching JS-driven fade-out
+     on internal links via pageTransition.js, but that added a
+     fixed 180ms delay before navigation even started with no real
+     functional benefit, so it's been removed - this fade-in is
+     the cosmetic piece worth keeping since it's free: it runs
+     while the browser is already busy loading the page, rather
+     than adding time on top.) */
+  animation: page-fade-in 0.25s ease;
+}
+
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+button {
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+/* Visible keyboard focus everywhere - accessibility floor */
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* =========================================================
+   APP SHELL
+   ========================================================= */
+.app {
+  width: 100%;
+  max-width: 460px;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* --- Header: home-link + title. The stats bar used to live here
+   too (a small side-corner next to the title), but now sits on
+   its own full-width row below the header instead - see
+   .stats-bar - so this is just the icon + title block. --- */
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: 2px;
+}
+
+.app-header__title-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-header__eyebrow {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  margin-bottom: 1px;
+}
+
+.app-header__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  margin: 0;
+  color: var(--color-chalk);
+}
+
+/* =========================================================
+   STATS BAR - full-width single row under the header, replacing
+   the old boxed "stats corner" that used to sit next to the
+   title. Flattening it to one row (instead of a 2-column grid in
+   a bordered box) trims a meaningful chunk of vertical space,
+   which matters more now that most game pages also show a
+   post-answer feedback block competing for the same room. No
+   reset control here any more - resetting session stats wasn't
+   essential enough to justify its own row/button once the panel
+   is this compact; lifetime stats (which matter long-term) have
+   their own reset on the Lifetime Stats page.
+   ========================================================= */
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  background: rgba(243, 236, 216, 0.06);
+  border: 1px solid rgba(199, 163, 75, 0.28);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
+
+.stats-bar .stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
+.stats-bar .stat__value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--color-chalk);
+  line-height: 1.15;
+}
+
+.stats-bar .stat__label {
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-chalk-dim);
+  white-space: nowrap;
+}
+
+/* =========================================================
+   HOME LINK - small "back to home" button in the game page
+   header. Icon-only to stay out of the way of the compact
+   header layout.
+   ========================================================= */
+.home-link {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(199, 163, 75, 0.3);
+  background: rgba(243, 236, 216, 0.06);
+  color: var(--color-chalk);
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.home-link:hover {
+  background: rgba(243, 236, 216, 0.15);
+}
+
+/* The arrow icon itself (see js/pickerIcons.js's arrowTriangle) -
+   flipped to point left via scaleX(-1) since the shared icon
+   points right by default. Precisely centred by construction
+   (see that function's comment for why this replaced a Unicode
+   arrow character, which wasn't). */
+.home-link__icon {
+  display: flex;
+  width: 15px;
+  height: 15px;
+  transform: scaleX(-1);
+}
+
+/* =========================================================
+   MODE MENU - the home page's list of game modes
+   ========================================================= */
+.mode-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* --- Section divider on the home page ---
+   Separates the counting/maths games from the checkout tools
+   (and, unlabelled, from the lifetime-stats pill) so the list of
+   options reads as distinct groups rather than one long stack of
+   buttons. */
+.mode-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-1) 0;
+}
+
+.mode-divider::before,
+.mode-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(28, 26, 21, 0.12);
+}
+
+.mode-divider__label {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+.mode-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 18px var(--space-3);
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(28, 26, 21, 0.35);
+  background: #FFFFFF;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.mode-button:hover {
+  background: var(--color-surface-dim);
+}
+
+.mode-button:active {
+  transform: scale(0.98);
+}
+
+/* The one live mode - styled like the app's primary action color
+   so it's obvious which option actually does something. */
+.mode-button--active {
+  background: var(--color-green);
+  border-color: var(--color-green-dark);
+  color: var(--color-chalk);
+}
+
+.mode-button--active:hover {
+  background: var(--color-green-dark);
+}
+
+/* Modes that don't exist yet - fully inert (a real disabled
+   button, not just an unstyled link), with a small badge instead
+   of relying on color/opacity alone to communicate the state.
+   Softer, lighter border than live buttons above (which are a
+   more solid 0.35 opacity) - this is the app's visual signal for
+   "not ready yet", reserved for coming-soon modes only. */
+.mode-button--disabled {
+  border-color: rgba(28, 26, 21, 0.12);
+  color: var(--color-ink-dim);
+  cursor: not-allowed;
+}
+
+.mode-button--disabled:hover {
+  background: #FFFFFF;
+}
+
+.mode-button__badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  background: var(--color-surface-dim);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+/* Variant for a badge holding an icon (the Continue button's
+   arrow - see js/continuePrompt.js) instead of text - flex-centres
+   the icon properly, since the base rule above only pads around
+   text and was never centring a glyph the way this needs. Circular
+   rather than pill-shaped, sized to comfortably fit the icon with
+   even padding on all sides. */
+.mode-button__badge--icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.mode-button__badge--icon [data-icon] {
+  display: flex;
+  width: 12px;
+  height: 12px;
+}
+
+/* Small inline icon inside a button's title (currently just the
+   Lifetime Stats button's bar-chart glyph, replacing what used to
+   be an emoji) - sized to sit on the text baseline rather than as
+   its own layout block. Uses currentColor (see js/pickerIcons.js's
+   statsChart()) so it automatically matches whatever text colour
+   the button already has, instead of a hardcoded fill that could
+   drift out of sync with a future colour change. */
+.mode-button__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Stacked title: used where a button also carries a short
+   description underneath its name (currently just COUNT/TRACK -
+   see index.html) - the name stays the same size/weight as a
+   plain .mode-button__title, the description sits below it, small
+   and dim, so the row still reads primarily as its name at a
+   glance with the description as secondary supporting detail. */
+.mode-button__title--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.mode-button__description {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--color-ink-dim);
+}
+
+.mode-button__icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   CONTINUE BUTTON - "pick up where you left off"
+   Deliberately a third colour, distinct from both the plain white
+   mode buttons (a fresh choice) and the gold Lifetime Stats button
+   (viewing progress, not playing) - green, since that's already
+   this app's established "go/primary action" colour everywhere
+   else (the Check button, correct-answer feedback, the treble
+   ring), so it reads as "the confident one-tap way back in"
+   without borrowing gold's separate meaning. Only rendered when
+   lifetime stats actually has a most-played mode to point at (see
+   js/continuePrompt.js) - a brand new player with no history never
+   sees it.
+   ========================================================= */
+.mode-button--continue {
+  background: var(--color-green);
+  border-color: var(--color-green-dark);
+  color: var(--color-chalk);
+}
+
+.mode-button--continue:hover {
+  background: var(--color-green-dark);
+}
+
+.mode-button--continue .mode-button__badge {
+  background: rgba(243, 236, 216, 0.18);
+  color: var(--color-chalk-dim);
+}
+
+/* =========================================================
+   PICKER CARDS - a dedicated page for choosing between a few
+   variants of the same game (e.g. flip-cards vs dartboard, or
+   1/2/3-dart difficulty), stacked vertically so it scales cleanly
+   from 2 options to however many a future mode needs, without
+   the cramped, centre-aligned-only layout a horizontal split
+   button forces. Sized noticeably bigger than the home page's
+   list buttons, since on this page there are only 2-4 of them and
+   choosing well matters more than scanning a long list fast.
+   ========================================================= */
+.picker-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.picker-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--space-4) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(28, 26, 21, 0.35);
+  background: #FFFFFF;
+  color: var(--color-ink);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.picker-card:hover {
+  background: var(--color-surface-dim);
+}
+
+.picker-card:active {
+  transform: scale(0.98);
+}
+
+/* Icon sits above the title, centred - see js/pickerIcons.js
+   (inline SVG built at runtime, no image requests) for what
+   actually fills this. Fixed height reserved up front so every
+   card's title/description line up at the same vertical position
+   regardless of how tall each icon's artwork happens to be. */
+.picker-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+}
+
+.picker-card__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.picker-card__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.picker-card__description {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-ink-dim);
+  line-height: 1.3;
+  max-width: 34ch;
+}
+
+/* Same "not built yet" language as .mode-button--disabled - softer
+   border, dimmed text, a badge instead of relying on colour alone. */
+.picker-card--disabled {
+  border-color: rgba(28, 26, 21, 0.12);
+  color: var(--color-ink-dim);
+  cursor: not-allowed;
+}
+
+.picker-card--disabled:hover {
+  background: #FFFFFF;
+}
+
+.picker-card--disabled .picker-card__description {
+  color: var(--color-ink-dim);
+  opacity: 0.7;
+}
+
+.picker-card--disabled .picker-card__icon {
+  opacity: 0.35;
+}
+
+.picker-card__badge {
+  align-self: center;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  background: var(--color-surface-dim);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+/* =========================================================
+   LIFETIME STATS BUTTON - same white/radius-md button shape as
+   everything else above, but gold, so "view my progress" still
+   reads as a distinct kind of action from "start playing".
+   ========================================================= */
+.mode-button--gold {
+  background: var(--color-gold);
+  border-color: #A8863A;
+  color: var(--color-ink);
+}
+
+.mode-button--gold:hover {
+  background: #B08F3E;
+}
+
+/* =========================================================
+   TRAINER CARD - the main attraction
+   Cream "number segment" card, with a striped wire border
+   along the top that echoes the ring of numbers on a board.
+   ========================================================= */
+.trainer-card {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow:
+    0 24px 48px -20px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(199, 163, 75, 0.35);
+  overflow: hidden;
+}
+
+/* Fills the remaining height below the header (the .app flex
+   column already spans the full viewport via body's default
+   stretch behavior - this just tells the card to claim that space
+   rather than shrink-wrap its content), used on pages that are
+   fundamentally "a short list of big choices" - the home page and
+   the variant-picker pages - so the buttons read as a complete,
+   deliberately composed screen instead of a short stack with dead
+   space below it on taller viewports. */
+.trainer-card--fill {
+  flex: 1;
+  /* Spaces the divider/button groups out evenly across the extra
+     room this creates, rather than leaving them clustered at the
+     top with a dead gap underneath - so "fill the page" actually
+     means the content occupies the space, not just an empty card. */
+  justify-content: space-evenly;
+}
+
+/* Signature element: a thin alternating black/cream stripe along
+   the top edge, standing in for the board's segment divider wire. */
+.trainer-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-ink) 0,
+    var(--color-ink) 22px,
+    var(--color-surface) 22px,
+    var(--color-surface) 44px
+  );
+}
+
+/* --- Scoreboard display: the two numbers that define the round --- */
+.scoreboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.scoreboard__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(28, 26, 21, 0.12);
+  padding-bottom: 4px;
+}
+
+.scoreboard__label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+.scoreboard__value {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  line-height: 1;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   THROW SQUARES - the 3 dart flip cards
+   Each square flips from a face-down "•" to its dart notation
+   (e.g. "T20") as the reveal sequence plays. Trebles are called
+   out in red, echoing the board's treble ring.
+   ========================================================= */
+.throws {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.throw-squares {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.throw-square {
+  flex: 1;
+  height: 54px;
+  perspective: 600px;
+}
+
+.throw-square__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+.throw-square--revealed .throw-square__inner {
+  transform: rotateY(180deg);
+}
+
+.throw-square__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  backface-visibility: hidden;
+  font-family: var(--font-display);
+}
+
+.throw-square__face--front {
+  background: var(--color-surface-dim);
+  border: 2px dashed rgba(28, 26, 21, 0.25);
+  color: rgba(28, 26, 21, 0.3);
+  font-size: 1.3rem;
+}
+
+.throw-square__face--back {
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.15);
+  color: var(--color-ink);
+  font-size: 1.4rem;
+  transform: rotateY(180deg);
+}
+
+/* Trebles called out in dartboard red */
+.throw-square--treble .throw-square__face--back {
+  color: var(--color-red);
+  border-color: rgba(179, 39, 44, 0.35);
+}
+
+/* =========================================================
+   DARTBOARD DISPLAY
+   The SVG board itself is built entirely in js/dartboard.js;
+   these rules only style what that script produces (segment
+   fills, numbers, dart markers) and size/center it on the page.
+   Colors are drawn from the same tokens as the rest of the app,
+   so the board reads as part of the same visual language.
+   ========================================================= */
+
+/* --- Board + numpad side by side ---
+   On the dartboard pages, the board and the answer-entry numpad
+   used to stack full-width one above the other, which was the
+   main reason those pages needed to scroll after an answer was
+   checked (the feedback block had nowhere left to fit). Placing
+   them side by side instead - board a little bigger since it's
+   the actual content, numpad narrower since it only needs to fit
+   3 columns of small buttons - reclaims that whole row of height
+   without shrinking either piece to the point of being fiddly to
+   read/tap. */
+.dartboard-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0;
+}
+
+/* The SVG is given explicit width/height attributes in JS as a
+   sane default, but sized responsively here via clamp() so it
+   shrinks on short viewports instead of forcing a scroll. CSS
+   width/height override the SVG's own attributes; the viewBox set
+   in JS keeps everything inside scaling correctly. */
+.dartboard-svg {
+  display: block;
+  width: clamp(155px, 30vh, 215px);
+  height: clamp(155px, 30vh, 215px);
+  max-width: 100%;
+}
+
+.dartboard-rim {
+  fill: none;
+  stroke: var(--color-gold);
+  stroke-width: 1.5;
+}
+
+.dartboard-seg {
+  stroke: var(--color-ink);
+  stroke-width: 0.4;
+}
+
+/* Single areas alternate cream/near-black, like the physical board. */
+.dartboard-seg--single-a {
+  fill: var(--color-surface);
+}
+.dartboard-seg--single-b {
+  fill: var(--color-ink);
+}
+
+/* Treble/double rings alternate red/green per segment. */
+.dartboard-seg--ring-a {
+  fill: var(--color-red);
+}
+.dartboard-seg--ring-b {
+  fill: var(--color-green);
+}
+
+.dartboard-bull-outer {
+  fill: var(--color-green);
+}
+.dartboard-bull-inner {
+  fill: var(--color-red);
+}
+
+.dartboard-number {
+  fill: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* Dart marker: gold reads reasonably against every segment color
+   (cream, black, red, green), with a dark outline for definition
+   and a small pop-in so each landing feels distinct. */
+.dartboard-dart {
+  fill: var(--color-gold);
+  stroke: var(--color-ink);
+  stroke-width: 0.6;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+  animation: dart-land 0.22s ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes dart-land {
+  from { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  to { transform: scale(1); }
+}
+
+.prompt {
+  margin: 0;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-ink-dim);
+}
+
+/* --- Answer form ---
+   Row layout even on mobile (not just >=600px): since the numpad
+   handles entry, keeping input + Check side-by-side saves a full
+   row of height compared to stacking them. */
+.answer-form {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.answer-form__input {
+  flex: 1;
+  min-width: 0;
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.18);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  text-align: center;
+  padding: 10px var(--space-2);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.answer-form__input:focus {
+  border-color: var(--color-green);
+  box-shadow: 0 0 0 3px rgba(15, 107, 69, 0.15);
+}
+
+/* Suppresses the global gold :focus-visible ring (see that rule
+   near the top of this file) specifically on the answer input -
+   without this, tapping/tabbing into the box shows two concentric
+   rings at once (the green one above, plus the gold accessibility
+   ring sitting further out due to its offset), which reads as a
+   mistake rather than an intentional double highlight. The green
+   treatment above is already a clear, sufficient focus indicator
+   on its own, so the input doesn't need the second ring the way
+   plain buttons/links (which have no other focus styling) do. */
+.answer-form__input:focus-visible {
+  outline: none;
+}
+
+.answer-form__input:disabled {
+  background: var(--color-surface-dim);
+  color: var(--color-ink-dim);
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   NUMPAD
+   A custom on-screen numpad drives answer entry instead of the
+   native mobile keyboard (the input above is readonly - see
+   index.html/ui.js) - so the board stays fully visible while
+   answering instead of half the screen disappearing behind the
+   OS keyboard.
+   ========================================================= */
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+/* Dimmed instead of hidden while the numpad isn't usable (still
+   waiting on the throw reveal, or after an answer's been checked)
+   - same "stay visible, just visibly inert" pattern as
+   .checkout-keypad--disabled, so the layout doesn't jump/reflow
+   between question states.
+
+   Deliberately NOT applied via opacity on the .numpad container
+   itself: opacity composites the whole subtree as one semi-
+   transparent layer, so a child's own "opacity: 1" can't escape a
+   dimmed ancestor - only pointer-events genuinely inherits that
+   way. Since .numpad__key--action (Check/Next) needs to look and
+   stay fully live even while the rest of the grid is frozen (it's
+   the only working control once an answer's been checked), the
+   dimming is scoped to plain keys only, via :not(), rather than to
+   the container. */
+.numpad--disabled .numpad__key:not(.numpad__key--action) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.numpad__key {
+  border: none;
+  border-radius: var(--radius-md);
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.12);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  padding: 9px 0;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.numpad__key:hover {
+  background: var(--color-surface-dim);
+}
+
+.numpad__key:active {
+  transform: scale(0.94);
+  background: var(--color-surface-dim);
+}
+
+/* Clear / backspace keys are visually de-emphasised - they're
+   destructive actions, not part of the number itself. */
+.numpad__key--muted {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-ink-dim);
+  font-size: 1.2rem;
+}
+
+.numpad__key--muted:hover,
+.numpad__key--muted:active {
+  background: var(--color-surface-dim);
+}
+
+/* The Check/Next action lives inside the numpad grid (top-right,
+   row 1 - see the HTML for why) rather than as a separate button
+   next to the answer box, so the answer box itself can run full
+   width. Styled like .btn--primary (green, same disabled/hover
+   treatment) so it's still unmistakably the primary action despite
+   sitting among the plain number keys. */
+/* The Check/Next action lives inside the numpad grid (see the HTML
+   for exact position) rather than as a separate button next to the
+   answer box, so the answer box itself can run full width. Styled
+   gold (same palette as the Lifetime Stats button on the home
+   page) so it's still unmistakably the primary action despite
+   sitting among the plain number keys. */
+.numpad__key--action {
+  background: var(--color-gold);
+  border-color: #A8863A;
+  color: var(--color-ink);
+  font-size: 1.4rem;
+}
+
+.numpad__key--action:hover {
+  background: #B08F3E;
+}
+
+.numpad__key--action:active {
+  background: #B08F3E;
+}
+
+.numpad__key--action:disabled {
+  background: var(--color-surface-dim);
+  border-color: rgba(28, 26, 21, 0.12);
+  color: var(--color-ink-dim);
+  cursor: not-allowed;
+  transform: none;
+  /* While genuinely disabled (still waiting on the reveal - see
+     setRevealing in ui.js), it SHOULD be unclickable, same as any
+     other disabled button - the browser ignores pointer events on
+     disabled form controls regardless of any pointer-events CSS. */
+}
+
+/* --- Buttons --- */
+.btn {
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn--primary {
+  background: var(--color-green);
+  color: var(--color-chalk);
+  font-size: 1.15rem;
+  padding: 0 var(--space-4);
+  white-space: nowrap;
+}
+
+.btn--primary:hover {
+  background: var(--color-green-dark);
+}
+
+.btn--primary:disabled {
+  background: var(--color-surface-dim);
+  color: var(--color-ink-dim);
+  cursor: not-allowed;
+}
+
+/* Full-width variant, used where a button is the only action on
+   the row rather than sharing space with an input (e.g. "View
+   checkout" below the numpad). */
+.btn--block {
+  width: 100%;
+  padding: 13px 0;
+}
+
+/* =========================================================
+   CHECKOUT CALCULATOR
+   ========================================================= */
+
+/* --- Dart-count selector: 3 equal buttons, exactly one active
+   at a time - same selected/unselected visual language as
+   .mode-button--active on the home page. --- */
+.dart-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.dart-selector__option {
+  padding: 10px 0;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(28, 26, 21, 0.12);
+  background: #FFFFFF;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.dart-selector__option:hover {
+  background: var(--color-surface-dim);
+}
+
+.dart-selector__option:active {
+  transform: scale(0.97);
+}
+
+.dart-selector__option--active {
+  background: var(--color-green);
+  border-color: var(--color-green-dark);
+  color: var(--color-chalk);
+}
+
+.dart-selector__option--active:hover {
+  background: var(--color-green-dark);
+}
+
+/* --- Results area --- */
+.checkout-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* See .answer-result[hidden] in the counting-games section for
+   why this is needed - .checkout-result's own "display: flex"
+   above would otherwise beat the browser's default
+   [hidden] { display: none }. */
+.checkout-result[hidden] {
+  display: none;
+}
+
+.checkout-result__impossible {
+  margin: 0;
+  padding: var(--space-3);
+  text-align: center;
+  background: rgba(179, 39, 44, 0.08);
+  border: 2px solid rgba(179, 39, 44, 0.25);
+  border-radius: var(--radius-md);
+  color: var(--color-red);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.02em;
+}
+
+.checkout-routes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.checkout-route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.12);
+  border-radius: var(--radius-md);
+}
+
+.checkout-route__rank {
+  flex-shrink: 0;
+  width: 44px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+.checkout-route__darts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkout-route__chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-surface-dim);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Finishing double/bullseye chip stands out - it's the shot that
+   actually wins the leg, distinct from the setup darts before it. */
+.checkout-route__chip--double {
+  background: var(--color-green);
+  color: var(--color-chalk);
+}
+
+/* --- Answer result ---
+   Replaces the plain answer-form__input in place once a question
+   has been checked, instead of a separate feedback block further
+   down the page - this is the single biggest reason the counting
+   games and checkout quiz needed to scroll after answering, since
+   a whole extra block below the numpad had nowhere left to fit
+   on a short phone screen. Same size/position/shape as the input
+   it replaces (so nothing else on the page reflows), just holding
+   the result text instead of a typed number. Toggled by JS via
+   the answer-form--answered modifier below. */
+.answer-result {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: var(--radius-md);
+  border: 2px solid;
+  padding: 6px var(--space-2);
+  text-align: center;
+  animation: feedback-in 0.18s ease;
+}
+
+/* Without this, the [hidden] attribute set by JS has no effect:
+   .answer-result's own "display: flex" above beats the browser's
+   default [hidden] { display: none } rule in the cascade, since
+   both are author/UA rules of comparable specificity and this
+   stylesheet loads after the UA one. The visible symptom was the
+   old answer squeezing into a tiny box alongside the reappearing
+   input on "Next question", instead of actually disappearing. */
+.answer-result[hidden] {
+  display: none;
+}
+
+@keyframes feedback-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.answer-result--correct {
+  background: rgba(15, 107, 69, 0.08);
+  border-color: var(--color-green);
+}
+
+.answer-result--incorrect {
+  background: rgba(179, 39, 44, 0.06);
+  border-color: var(--color-red);
+}
+
+.answer-result__headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+.answer-result--correct .answer-result__headline {
+  color: var(--color-green);
+}
+
+.answer-result--incorrect .answer-result__headline {
+  color: var(--color-red);
+}
+
+/* Working-out line(s) - e.g. the addition/subtraction steps, or
+   which dart actually finishes the checkout. Kept small since up
+   to two of these can appear in the same compact box. */
+.answer-result__working {
+  margin: 0;
+  color: var(--color-ink-dim);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.answer-result__working--emphasis {
+  color: var(--color-ink);
+  font-weight: 700;
+  font-size: 0.68rem;
+}
+
+.answer-result__time {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--color-ink-dim);
+}
+
+/* =========================================================
+   LIFETIME STATS PAGE
+   ========================================================= */
+
+/* --- Play Streak banner: consecutive days played, any mode.
+   Deliberately styled apart from the summary/mode-card stats
+   below it (gold background, flame icon) since it's a different
+   kind of number - showing up, not scoring - and this is the
+   page's "hero" stat, the one most likely to bring someone back
+   tomorrow. --- */
+.play-streak {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: linear-gradient(135deg, var(--color-gold) 0%, #B08F3E 100%);
+  border-radius: var(--radius-md);
+}
+
+.play-streak__current {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.play-streak__flame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.play-streak__current-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.play-streak__value {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.play-streak__label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(28, 26, 21, 0.7);
+}
+
+.play-streak__best {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-sm);
+}
+
+.play-streak__best-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-ink);
+  line-height: 1.2;
+}
+
+.play-streak__best-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(28, 26, 21, 0.7);
+}
+
+/* --- Combined summary: the headline numbers at the top --- */
+.lifetime-summary {
+  border-bottom: 1px solid rgba(28, 26, 21, 0.12);
+  padding-bottom: var(--space-3);
+}
+
+.lifetime-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.lifetime-summary__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.lifetime-summary__value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--color-green);
+}
+
+.lifetime-summary__label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+/* --- Per-mode breakdown cards --- */
+.lifetime-modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lifetime-mode-card {
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.12);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.lifetime-mode-card--empty {
+  background: transparent;
+  border-style: dashed;
+}
+
+.lifetime-mode-card__header {
+  margin-bottom: 10px;
+}
+
+.lifetime-mode-card__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+}
+
+.lifetime-mode-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2) var(--space-3);
+}
+
+.lifetime-mode-card__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lifetime-mode-card__value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--color-ink);
+}
+
+.lifetime-mode-card__label {
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+.lifetime-mode-card--empty .lifetime-mode-card__value {
+  color: var(--color-ink-dim);
+}
+
+.lifetime-mode-card__empty-note {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: var(--color-ink-dim);
+}
+
+/* --- Reset button: styled like the session reset link, but a
+   full-width button since it's this page's only real action. --- */
+.lifetime-reset-btn {
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(28, 26, 21, 0.18);
+  background: transparent;
+  color: var(--color-ink-dim);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lifetime-reset-btn:hover {
+  background: rgba(179, 39, 44, 0.08);
+  color: var(--color-red);
+  border-color: rgba(179, 39, 44, 0.3);
+}
+
+/* =========================================================
+   CHECKOUT QUIZ
+   ========================================================= */
+
+/* --- Score display: reuses .scoreboard__label above it, but a
+   bigger standalone number since it's this page's whole "question"
+   (there's no throws row leading up to it like the counting
+   games have). --- */
+.checkout-quiz-score {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  line-height: 1;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Checkout keypad ---
+   Deliberately not the standard numeric numpad: D/T are toggle
+   modifiers (top row, styled like the dart-selector on the
+   checkout calculator), then a 4-column grid holds numbers 1-20
+   plus Bull, so answers are built as "modifier + number" (e.g.
+   D + 16 -> D16) or Bull on its own. */
+.checkout-keypad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.checkout-keypad--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.checkout-keypad__modifiers {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.checkout-keypad__modifier {
+  padding: 10px 0;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(28, 26, 21, 0.12);
+  background: #FFFFFF;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.checkout-keypad__modifier:hover {
+  background: var(--color-surface-dim);
+}
+
+.checkout-keypad__modifier:active {
+  transform: scale(0.97);
+}
+
+/* D uses the red ring colour, T the green ring colour - matching
+   the real dartboard's double/treble ring colours, so the toggled
+   state doubles as a mnemonic rather than an arbitrary highlight. */
+.checkout-keypad__modifier--active[data-modifier="D"] {
+  background: var(--color-red);
+  border-color: #8C1F23;
+  color: var(--color-chalk);
+}
+
+.checkout-keypad__modifier--active[data-modifier="T"] {
+  background: var(--color-green);
+  border-color: var(--color-green-dark);
+  color: var(--color-chalk);
+}
+
+.checkout-keypad__numbers {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.checkout-keypad__key {
+  padding: 12px 0;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-surface-dim);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.checkout-keypad__key:hover {
+  background: #DED4B6;
+}
+
+.checkout-keypad__key:active {
+  transform: scale(0.95);
+}
+
+/* Bull sits in its own row alongside Clear (see
+   .checkout-keypad__actions below) since it's a single fixed
+   segment, not part of the 1-20 number grid - but it's styled
+   identically to the plain number keys (no special colour), so it
+   just reads as "one more key" rather than implying it's somehow
+   the primary/preferred action. */
+.checkout-keypad__key--muted {
+  background: transparent;
+  border: 1px solid rgba(28, 26, 21, 0.18);
+  color: var(--color-ink-dim);
+}
+
+.checkout-keypad__key--muted:hover {
+  background: rgba(28, 26, 21, 0.05);
+}
+
+/* Bull + Clear side by side - see the HTML comment on this markup
+   for why they share a row instead of each getting a full-width
+   one. */
+.checkout-keypad__actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* =========================================================
+   RESPONSIVE ADJUSTMENTS
+   Already mobile-first. The answer-form/numpad/scoreboard sizes
+   above are deliberately compact so the whole card fits one
+   screen without scrolling on typical phones; these breakpoints
+   only handle the extremes (very narrow phones, and short/
+   landscape viewports where vertical space is tight).
+   ========================================================= */
+@media (max-width: 340px) {
+  .scoreboard__value {
+    font-size: 2.2rem;
+  }
+}
+
+@media (min-width: 600px) {
+  .app {
+    max-width: 520px;
+  }
+  .app-header__title {
+    font-size: 1.9rem;
+  }
+}
+
+/* Short viewports (small phones with the browser chrome visible,
+   or landscape orientation): trim the biggest vertical consumers
+   further so the Next button never ends up below the fold. */
+@media (max-height: 700px) {
+  .app {
+    gap: 6px;
+    padding: 6px 10px 8px;
+  }
+  .trainer-card {
+    padding: 14px 14px 12px;
+    gap: 7px;
+  }
+  .throw-square {
+    height: 44px;
+  }
+  .dartboard-svg {
+    width: clamp(135px, 24vh, 175px);
+    height: clamp(135px, 24vh, 175px);
+  }
+  .numpad__key {
+    padding: 6px 0;
+    font-size: 1.1rem;
+  }
+  .stats-bar {
+    padding: 4px 8px;
+  }
+  .stats-bar .stat__value {
+    font-size: 0.72rem;
+  }
+  .answer-result {
+    padding: 4px var(--space-2);
+  }
+
+  /* --- Checkout quiz: the D/T + 1-20 + Bull/Clear keypad is the
+     tallest single element in the app, so it gets the
+     biggest cuts here - smaller score display, tighter keys,
+     and a tighter answer-result box, so "Next question" still
+     lands above the fold on a short phone. --- */
+  .checkout-quiz-score {
+    font-size: 2.2rem;
+    margin-top: 0;
+  }
+  .checkout-keypad {
+    gap: 6px;
+  }
+  .checkout-keypad__numbers,
+  .checkout-keypad__actions {
+    gap: 6px;
+  }
+  .checkout-keypad__key {
+    padding: 7px 0;
+    font-size: 0.85rem;
+  }
+  .checkout-keypad__key--bull {
+    font-size: 0.95rem;
+  }
+  .checkout-keypad__modifier {
+    padding: 7px 0;
+    font-size: 1rem;
+  }
+
+  /* --- Checkout calculator: numbers 0-9 numpad + dart selector +
+     "View checkout" button + results, all visible at once once a
+     score has been checked - trim each so the result cards don't
+     get pushed off-screen. --- */
+  .dart-selector__option {
+    padding: 7px 0;
+    font-size: 0.9rem;
+  }
+  .checkout-route {
+    padding: 10px var(--space-3);
+  }
+  .checkout-route__chip {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Very short viewports (small phones with browser chrome visible)
+   - the checkout quiz's tall keypad in particular needs another
+   pass beyond the 700px breakpoint above, so its "Next question"
+   state still doesn't get pushed below the fold. */
+@media (max-height: 600px) {
+  .app-header__eyebrow {
+    display: none;
+  }
+  .checkout-quiz-score {
+    font-size: 1.8rem;
+  }
+  .prompt {
+    font-size: 0.9rem;
+  }
+  .checkout-keypad__key {
+    padding: 5px 0;
+    font-size: 0.78rem;
+  }
+  .checkout-keypad__modifier {
+    padding: 5px 0;
+    font-size: 0.9rem;
+  }
+  .answer-result__headline {
+    font-size: 1rem;
+  }
+}
