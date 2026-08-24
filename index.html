@@ -49,12 +49,16 @@
          aligned text - the split-pill pattern (two destinations
          sharing one row) that used to live here for "flip-cards vs
          dartboard" and "1/2/3-dart" has been replaced by dedicated
-         picker pages (game-picker.html, practice-picker.html,
+         setup screens (game-picker.html, practice-picker.html,
          checkout-quiz-picker.html) instead, for two reasons: it
          keeps every button on this page the same shape (genuine
          consistency, not "consistent except when it's a pill"),
          and it scales cleanly as more variants/difficulties get
-         added later without needing an ever-more-cramped pill. -->
+         added later without needing an ever-more-cramped pill.
+         COUNT/TRACK link straight into their setup screens - View
+         and Game Mode are chosen there, staged behind a Play
+         button, rather than as an immediate navigation from here
+         (see js/setupPicker.js). -->
     <main class="trainer-card trainer-card--fill" id="mode-select-card">
 
       <!-- Section divider: labels this whole first group as the

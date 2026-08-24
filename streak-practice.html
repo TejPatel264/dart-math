@@ -3,17 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <title>3-Dart Game — Dart Maths Trainer</title>
+  <title>Beat the Referee — Dart Maths Trainer</title>
   <link rel="stylesheet" href="css/styles.css" />
 
-  <!-- Google Fonts loaded non-render-blockingly: preload the
-       stylesheet in the background, then swap it in via onload.
-       The page renders immediately on the CSS system-font
-       fallbacks (see --font-display/--font-body/--font-mono in
-       styles.css) and the real fonts apply the moment they
-       arrive, instead of every navigation waiting on an external
-       network round-trip before showing anything. The <noscript>
-       fallback covers the rare case of JS being disabled. -->
+  <!-- Google Fonts loaded non-render-blockingly - see 3-dart-practice.html for the fuller rationale. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -34,45 +27,72 @@
       <a href="index.html" class="home-link" aria-label="Back to home"><span class="home-link__icon" data-icon="arrowTriangle"></span></a>
 
       <div class="app-header__title-block">
-        <span class="app-header__eyebrow">Scoring Practice</span>
+        <span class="app-header__eyebrow">Beat the Referee</span>
         <h1 class="app-header__title">Dart Maths Trainer</h1>
       </div>
     </header>
 
-    <!-- Session stats: one flattened full-width row instead of a
-         boxed corner next to the title - trims vertical space, and
-         drops the per-session reset control (lifetime stats, which
-         matter longer-term, have their own reset on that page). -->
-    <aside class="stats-bar" id="stats-panel" aria-label="Session statistics">
+    <!-- Today's stats: Best (streak), Average time, and Accuracy -
+         scoped to every run played today (see js/streakDailyStats.js),
+         not the current run, so these persist across Play Again and
+         page reloads within the same day rather than resetting like
+         a normal session stat. Attempts/Answered is deliberately not
+         shown here - in Streak mode it's always identical to the
+         current streak until the first wrong answer, so it never
+         adds information beyond what the streak display already
+         shows. -->
+    <aside class="stats-bar" id="stats-panel" aria-label="Today's statistics">
       <div class="stat">
-        <span class="stat__value" id="stat-answered">0</span>
-        <span class="stat__label">Answered</span>
+        <span class="stat__value" id="stat-best">0</span>
+        <span class="stat__label">Best</span>
       </div>
       <div class="stat">
-        <span class="stat__value" id="stat-correct">0</span>
-        <span class="stat__label">Correct</span>
+        <span class="stat__value" id="stat-avg-time">—</span>
+        <span class="stat__label">Avg Time</span>
       </div>
       <div class="stat">
         <span class="stat__value" id="stat-accuracy">—</span>
         <span class="stat__label">Accuracy</span>
-      </div>
-      <div class="stat">
-        <span class="stat__value" id="stat-avg-time">—</span>
-        <span class="stat__label">Avg time</span>
-      </div>
-      <div class="stat">
-        <span class="stat__value" id="stat-streak">0</span>
-        <span class="stat__label">Streak</span>
       </div>
     </aside>
 
     <!-- Main trainer card: everything needed for one question lives here -->
     <main class="trainer-card trainer-card--fill" id="trainer-card">
 
-      <div class="scoreboard">
-        <div class="scoreboard__row">
-          <span class="scoreboard__label">Starting score</span>
-          <span class="scoreboard__value" id="starting-score">501</span>
+      <!-- Referee intro: shown full-focus for the first 3 seconds
+           of a run before settling into the compact Target cell
+           below - see js/streakMain.js. Sits in the same spot the
+           throws/prompt would otherwise occupy, so nothing shifts
+           position when it's swapped out. -->
+      <div class="referee-intro" id="referee-intro" hidden>
+        <span class="referee-intro__eyebrow">The Referee</span>
+        <p class="referee-intro__line">
+          The referee got <span class="referee-intro__value" id="referee-intro-target">0</span>.
+        </p>
+        <p class="referee-intro__question">Can you beat it?</p>
+      </div>
+
+      <!-- Current-run Target / Streak / Timer, all three scoped to
+           this run - this is the trio that actually changes
+           moment to moment during play, so it sits right above the
+           throw squares rather than in the stats bar, which now
+           only holds slower-moving, all-day figures. Hidden until
+           the last throw is revealed and the clock genuinely
+           starts - see js/streakMain.js. -->
+      <div class="streak-live" id="streak-timer" hidden>
+        <div class="streak-live__cell">
+          <span class="streak-live__value" id="stat-target">0</span>
+          <span class="streak-live__label">Target</span>
+        </div>
+        <span class="streak-live__divider" aria-hidden="true"></span>
+        <div class="streak-live__cell">
+          <span class="streak-live__value" id="stat-streak">0</span>
+          <span class="streak-live__label">Streak</span>
+        </div>
+        <span class="streak-live__divider" aria-hidden="true"></span>
+        <div class="streak-live__cell">
+          <span class="streak-live__value" id="streak-timer-value">30.0</span>
+          <span class="streak-live__label">Timer</span>
         </div>
       </div>
 
@@ -100,7 +120,7 @@
         </div>
       </div>
 
-      <p class="prompt">What score is left?</p>
+      <p class="prompt">What's the total?</p>
 
       <form id="answer-form" class="answer-form" autocomplete="off">
         <input
@@ -110,42 +130,19 @@
           id="answer-input"
           class="answer-form__input"
           placeholder="0"
-          aria-label="Remaining score"
+          aria-label="Total of the three throws"
         />
 
         <!-- Shown in place of the input above once an answer is
-             checked, instead of a separate block further down the
-             page - see the .answer-result rule in styles.css for
-             why. Built up via js/scoreResultUi.js + js/ui.js: a
-             headline, the visit's darts as chips, the Track-mode
-             score progression (401 -> 264), then the visit time. -->
+             checked - same pattern as Unlimited practice. -->
         <div class="answer-result" id="answer-result" hidden>
           <p class="answer-result__headline" id="feedback-result"></p>
-          <p class="answer-result__user-answer" id="feedback-user-answer" hidden></p>
-          <div class="answer-result__darts" id="feedback-darts"></div>
-          <p class="answer-result__progression" id="feedback-progression" hidden></p>
+          <p class="answer-result__working answer-result__working--emphasis" id="feedback-working"></p>
           <p class="answer-result__time" id="feedback-time"></p>
         </div>
       </form>
 
-      <!--
-        Custom on-screen numpad: on mobile, the input above is
-        readonly (see js/ui.js) specifically so tapping it never
-        triggers the native OS keyboard, which would otherwise eat
-        half the screen. This numpad is the actual input method on
-        touch devices; a physical keyboard still works too via a
-        keydown listener on the (readonly) input itself.
-
-        Check/Next lives in the numpad grid itself (bottom-right,
-        after 0) rather than next to the answer box - freeing the
-        answer box to run the full width of the card, which it
-        needs for longer working-out lines (e.g. three trebles) to
-        fit on one line. It's still type="submit" and linked back
-        to the form above via the form="answer-form" attribute, so
-        Enter/clicking it behaves exactly as if it were inside the
-        <form>. Clear has been dropped to make room - backspace
-        (bottom-left) already covers correcting a mistake.
-      -->
+      <!-- Custom on-screen numpad - see 3-dart-practice.html for the fuller rationale. -->
       <div class="numpad" id="numpad">
         <button type="button" class="numpad__key" data-key="1">1</button>
         <button type="button" class="numpad__key" data-key="2">2</button>
@@ -161,28 +158,48 @@
         <button type="submit" form="answer-form" class="numpad__key numpad__key--action" id="check-btn" aria-label="Check answer">✓</button>
       </div>
 
+      <!-- Streak-over screen: replaces everything above once a
+           wrong answer (or an expired timer) ends the run. Sits
+           in the same card rather than navigating to a separate
+           page, so Play Again can reset state in place instead of
+           needing a fresh page load. -->
+      <div class="streak-over" id="streak-over" hidden>
+        <span class="streak-over__eyebrow">Streak ended</span>
+        <span class="streak-over__value" id="streak-over-value">0</span>
+        <span class="streak-over__label">Correct in a row</span>
+        <p class="streak-over__detail" id="streak-over-detail"></p>
+        <p class="streak-over__referee-result" id="streak-over-referee-result"></p>
+        <button type="button" class="streak-over__play-again" id="play-again-btn">Play Again</button>
+      </div>
+
     </main>
 
   </div>
 
   <!--
-    Loaded as plain scripts (not type="module") so the app works
-    when opened directly from disk or from any static server, with
-    no build step needed. Order matters: each file attaches to
-    window.DartsTrainer, and later files depend on earlier ones
-    being loaded first.
+    Loaded as plain scripts (not type="module") - see
+    3-dart-practice.html for the fuller rationale. Shares every
+    file with Unlimited practice except streakUi.js/streakMain.js
+    (in place of practiceUi.js/practiceMain.js), plus the addition
+    of countdownTimer.js (per-question clock), streakTiming.js
+    (how long each question gets), streakDailyStats.js (today's
+    Best/Avg Time/Accuracy), and refereeTarget.js (the Beat the
+    Referee target score).
   -->
   <script src="js/random.js" defer></script>
   <script src="js/timer.js" defer></script>
+  <script src="js/countdownTimer.js" defer></script>
+  <script src="js/streakTiming.js" defer></script>
+  <script src="js/streakDailyStats.js" defer></script>
+  <script src="js/refereeTarget.js" defer></script>
   <script src="js/aimData.js" defer></script>
   <script src="js/aimModel.js" defer></script>
   <script src="js/revealSequence.js" defer></script>
   <script src="js/gameEngine.js" defer></script>
   <script src="js/stats.js" defer></script>
   <script src="js/lifetimeStats.js" defer></script>
-  <script src="js/scoreResultUi.js" defer></script>
-  <script src="js/ui.js" defer></script>
-  <script src="js/main.js" defer></script>
+  <script src="js/streakUi.js" defer></script>
+  <script src="js/streakMain.js" defer></script>
   <script src="js/pickerIcons.js" defer></script>
   <script src="js/pickerIconsInit.js" defer></script>
 </body>

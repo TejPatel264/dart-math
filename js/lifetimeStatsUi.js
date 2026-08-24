@@ -30,6 +30,12 @@
   const { lifetimeStats } = window.DartsTrainer;
 
   const elements = {
+    profileName: document.getElementById('profile-name'),
+    profileTreble0: document.getElementById('profile-treble-0'),
+    profileTreble1: document.getElementById('profile-treble-1'),
+    profileDouble0: document.getElementById('profile-double-0'),
+    profileDouble1: document.getElementById('profile-double-1'),
+
     playStreakCurrent: document.getElementById('play-streak-current'),
     playStreakBest: document.getElementById('play-streak-best'),
 
@@ -39,6 +45,56 @@
     modesContainer: document.getElementById('lifetime-modes'),
     resetBtn: document.getElementById('lifetime-reset-btn'),
   };
+
+  /** Fills a <select> with options 1-20 (dartboard numbers) - built once, values only change after. */
+  function populateSegmentOptions(selectEl) {
+    for (let n = lifetimeStats.MIN_SEGMENT; n <= lifetimeStats.MAX_SEGMENT; n++) {
+      const option = document.createElement('option');
+      option.value = String(n);
+      option.textContent = String(n);
+      selectEl.appendChild(option);
+    }
+  }
+
+  [elements.profileTreble0, elements.profileTreble1, elements.profileDouble0, elements.profileDouble1]
+    .forEach(populateSegmentOptions);
+
+  /**
+   * Re-reads the profile from storage and refreshes every profile
+   * field's displayed value - called after any change (including a
+   * duplicate-triggered swap in the OTHER select of a pair, which
+   * this instance's own change handler wouldn't otherwise know to
+   * update).
+   */
+  function renderProfile() {
+    const profile = lifetimeStats.getProfile();
+    elements.profileName.value = profile.name;
+    elements.profileTreble0.value = String(profile.favoriteTrebles[0]);
+    elements.profileTreble1.value = String(profile.favoriteTrebles[1]);
+    elements.profileDouble0.value = String(profile.favoriteDoubles[0]);
+    elements.profileDouble1.value = String(profile.favoriteDoubles[1]);
+  }
+
+  elements.profileName.addEventListener('input', () => {
+    lifetimeStats.setName(elements.profileName.value);
+  });
+
+  elements.profileTreble0.addEventListener('change', () => {
+    lifetimeStats.setFavoriteTreble(0, Number(elements.profileTreble0.value));
+    renderProfile();
+  });
+  elements.profileTreble1.addEventListener('change', () => {
+    lifetimeStats.setFavoriteTreble(1, Number(elements.profileTreble1.value));
+    renderProfile();
+  });
+  elements.profileDouble0.addEventListener('change', () => {
+    lifetimeStats.setFavoriteDouble(0, Number(elements.profileDouble0.value));
+    renderProfile();
+  });
+  elements.profileDouble1.addEventListener('change', () => {
+    lifetimeStats.setFavoriteDouble(1, Number(elements.profileDouble1.value));
+    renderProfile();
+  });
 
   /** Formats a mode-stats object's accuracy as a string for display. */
   function formatAccuracy(modeStats) {
@@ -88,8 +144,10 @@
     return card;
   }
 
-  /** Renders the play streak, combined summary, and every mode's card from current storage. */
+  /** Renders the profile, play streak, combined summary, and every mode's card from current storage. */
   function render() {
+    renderProfile();
+
     const playStreak = lifetimeStats.getPlayStreak();
     elements.playStreakCurrent.textContent = playStreak.currentStreak;
     elements.playStreakBest.textContent = playStreak.bestStreak;
@@ -107,7 +165,7 @@
 
   function handleReset() {
     const confirmed = window.confirm(
-      'Reset all lifetime stats? This clears totals, streaks, and your play streak for every mode and can\'t be undone.'
+      'Reset all lifetime stats? This clears totals, streaks, and your play streak for every mode and can\'t be undone. Your name and favourites are kept.'
     );
     if (!confirmed) return;
 

@@ -41,6 +41,45 @@
 
     <main class="trainer-card">
 
+      <!-- Player profile: name + favourite trebles/doubles. Sits
+           above everything else on the page - stats are about what
+           the player HAS done, this is about who they ARE, so it
+           reads as the page's opening context rather than another
+           stat card. Saved to the same lifetimeStats.js blob as
+           everything else (see js/lifetimeStatsUi.js), but kept
+           deliberately separate from "stats" conceptually - the
+           reset button below only clears totals/streaks, not this. -->
+      <section class="profile" id="profile" aria-label="Player profile">
+        <div class="profile__name-row">
+          <label class="profile__label" for="profile-name">Name</label>
+          <input
+            type="text"
+            id="profile-name"
+            class="profile__name-input"
+            placeholder="Enter your name"
+            maxlength="40"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="profile__favorites">
+          <div class="profile__favorite-group">
+            <span class="profile__label">Favourite Trebles</span>
+            <div class="profile__select-row">
+              <select id="profile-treble-0" class="profile__select" aria-label="Favourite treble, 1st"></select>
+              <select id="profile-treble-1" class="profile__select" aria-label="Favourite treble, 2nd"></select>
+            </div>
+          </div>
+          <div class="profile__favorite-group">
+            <span class="profile__label">Favourite Doubles</span>
+            <div class="profile__select-row">
+              <select id="profile-double-0" class="profile__select" aria-label="Favourite double, 1st"></select>
+              <select id="profile-double-1" class="profile__select" aria-label="Favourite double, 2nd"></select>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Play Streak: consecutive calendar days with at least one
            question answered in ANY mode - a different kind of stat
            to the per-mode breakdown below (it's about showing up,

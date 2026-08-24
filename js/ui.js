@@ -19,7 +19,7 @@ window.DartsTrainer = window.DartsTrainer || {};
   // Must match the CSS transition duration on .throw-square__inner
   // (see styles.css). Used to know when a flip-back animation has
   // finished before swapping in the next question's throw labels.
-  const FLIP_TRANSITION_MS = 500;
+  const FLIP_TRANSITION_MS = 300;
 
   // --- Element references, grabbed once ---
   const elements = {
@@ -35,8 +35,9 @@ window.DartsTrainer = window.DartsTrainer || {};
 
     answerResult: document.getElementById('answer-result'),
     feedbackResult: document.getElementById('feedback-result'),
-    feedbackAddition: document.getElementById('feedback-addition'),
-    feedbackSubtraction: document.getElementById('feedback-subtraction'),
+    feedbackUserAnswer: document.getElementById('feedback-user-answer'),
+    feedbackDarts: document.getElementById('feedback-darts'),
+    feedbackProgression: document.getElementById('feedback-progression'),
     feedbackTime: document.getElementById('feedback-time'),
 
     statAnswered: document.getElementById('stat-answered'),
@@ -254,46 +255,52 @@ window.DartsTrainer = window.DartsTrainer || {};
   /**
    * Renders the result of a checked answer, filling in the
    * answerResult box that setAnswered() then swaps into view in
-   * place of the plain input.
+   * place of the plain input, as a darts "visit recap" - see
+   * js/scoreResultUi.js for the shared DOM-building helpers this
+   * delegates to. Track mode asks for the REMAINING score (not the
+   * visit total), so the headline (always the CORRECT remaining
+   * score) and the dimmed what-they-typed line are both anchored to
+   * that - the player typed a remaining-score guess, so that guess
+   * is what's shown underneath (contrast with practiceUi.js, which
+   * is anchored to the visit total instead, since that's what THAT
+   * mode asks for). The visit itself (its darts, as chips) is still
+   * shown either way, plus the starting-score -> remaining-score
+   * progression that's unique to this mode.
    * @param {boolean} wasCorrect
-   * @param {{throws: {notation: string, value: number}[], visitScore: number, remainingScore: number}} question
+   * @param {{throws: {notation: string, value: number}[], visitScore: number, remainingScore: number, startingScore: number}} question
    * @param {number} timeTakenSeconds
+   * @param {string} userAnswer - The raw string the player submitted (only shown when wasCorrect is false).
    */
-  /**
-   * Formats one throw for the working-out line. Plain singles
-   * (notation is just digits, e.g. "20") don't need their value
-   * spelled out - the number already IS the value - so only
-   * doubles/trebles/bull (anything with a letter prefix, e.g.
-   * "T20", "D16", "Bull") get the "(value)" suffix, since those
-   * are the ones where the notation alone doesn't make the score
-   * obvious.
-   * @param {{notation: string, value: number}} throwItem
-   * @returns {string}
-   */
-  function formatThrow(throwItem) {
-    const isPlainSingle = /^\d+$/.test(throwItem.notation);
-    return isPlainSingle ? throwItem.notation : `${throwItem.notation} (${throwItem.value})`;
-  }
+  function renderFeedback(wasCorrect, question, timeTakenSeconds, userAnswer) {
+    const {
+      renderHeadline, renderUserAnswer, hideUserAnswer, renderDartsRow, renderProgression,
+      isMaximumVisit, appendMaximumBadge, formatVisitTime,
+    } = window.DartsTrainer.scoreResultUi;
 
-  function renderFeedback(wasCorrect, question, timeTakenSeconds) {
-    elements.answerResult.className = wasCorrect
+    const isMaximum = isMaximumVisit(question);
+
+    let className = wasCorrect
       ? 'answer-result answer-result--correct'
       : 'answer-result answer-result--incorrect';
+    if (isMaximum) className += ' answer-result--maximum';
+    if (wasCorrect) className += ' answer-result--correct-flash'; // correct-only, see the task's animation spec
+    elements.answerResult.className = className;
 
-    elements.feedbackResult.textContent = wasCorrect ? 'Correct!' : 'Not quite';
+    renderHeadline(elements.feedbackResult, {
+      wasCorrect,
+      correctValue: question.remainingScore,
+      correctUnitLabel: 'REMAINING',
+      incorrectUnitLabel: 'Actual Remaining:',
+    });
+    if (isMaximum) appendMaximumBadge(elements.feedbackResult);
 
-    // Show both steps of the mental maths, always - not just when
-    // wrong - since reinforcing the working is the whole point:
-    // 1) add the 3 throws, 2) subtract that total from the starting
-    // score. These are two separate lines (not one run-on sentence)
-    // so the subtraction - the actual answer to the question - is
-    // impossible to miss.
-    const sumLine = question.throws.map(formatThrow).join(' + ');
-    elements.feedbackAddition.textContent = `${sumLine} = ${question.visitScore}`;
-    elements.feedbackSubtraction.textContent =
-      `${question.startingScore} − ${question.visitScore} = ${question.remainingScore}`;
+    if (wasCorrect) hideUserAnswer(elements.feedbackUserAnswer);
+    else renderUserAnswer(elements.feedbackUserAnswer, userAnswer);
 
-    elements.feedbackTime.textContent = `Answered in ${timeTakenSeconds.toFixed(2)}s`;
+    renderDartsRow(elements.feedbackDarts, question.throws);
+    renderProgression(elements.feedbackProgression, question.startingScore, question.remainingScore);
+
+    elements.feedbackTime.textContent = formatVisitTime(timeTakenSeconds);
 
     // Lock the numpad and swap the input for the answerResult box
     // just filled in above, relabelling the SAME Check button as

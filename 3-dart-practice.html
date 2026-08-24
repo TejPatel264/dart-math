@@ -67,7 +67,7 @@
     </aside>
 
     <!-- Main trainer card: everything needed for one question lives here -->
-    <main class="trainer-card" id="trainer-card">
+    <main class="trainer-card trainer-card--fill" id="trainer-card">
 
       <div class="throws">
         <span class="scoreboard__label">This visit</span>
@@ -109,10 +109,14 @@
         <!-- Shown in place of the input above once an answer is
              checked, instead of a separate block further down the
              page - see the .answer-result rule in styles.css for
-             why. -->
+             why. Built up via js/scoreResultUi.js + js/practiceUi.js:
+             a headline, the visit's darts as chips, then the visit
+             time (no score-progression line here - that's Track-
+             mode only, see three-dart-game.html). -->
         <div class="answer-result" id="answer-result" hidden>
           <p class="answer-result__headline" id="feedback-result"></p>
-          <p class="answer-result__working answer-result__working--emphasis" id="feedback-working"></p>
+          <p class="answer-result__user-answer" id="feedback-user-answer" hidden></p>
+          <div class="answer-result__darts" id="feedback-darts"></div>
           <p class="answer-result__time" id="feedback-time"></p>
         </div>
       </form>
@@ -175,6 +179,7 @@
   <script src="js/gameEngine.js" defer></script>
   <script src="js/stats.js" defer></script>
   <script src="js/lifetimeStats.js" defer></script>
+  <script src="js/scoreResultUi.js" defer></script>
   <script src="js/practiceUi.js" defer></script>
   <script src="js/practiceMain.js" defer></script>
   <script src="js/pickerIcons.js" defer></script>

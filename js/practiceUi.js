@@ -4,10 +4,11 @@
  * DOM layer for the 3-Dart Practice page. This is deliberately
  * a separate (smaller) sibling of ui.js rather than a shared
  * module with conditionals in it: the two pages' DOM genuinely
- * differs (no starting score, single-line feedback instead of
- * an addition+subtraction pair), and keeping them as two plain
- * files is easier to read and safer to change than one file
- * branching on "which page am I" everywhere.
+ * differs (no starting score, no score-progression line), and
+ * keeping them as two plain files is easier to read and safer to
+ * change than one file branching on "which page am I" everywhere.
+ * The result-box rendering itself is shared logic, though - see
+ * js/scoreResultUi.js, which both this file and ui.js delegate to.
  *
  * Everything below the DOM layer (random.js, timer.js, aimData/
  * aimModel.js, revealSequence.js, gameEngine.js, stats.js) is
@@ -24,7 +25,7 @@ window.DartsTrainer = window.DartsTrainer || {};
   // Must match the CSS transition duration on .throw-square__inner
   // (see styles.css). Used to know when a flip-back animation has
   // finished before swapping in the next question's throw labels.
-  const FLIP_TRANSITION_MS = 500;
+  const FLIP_TRANSITION_MS = 300;
 
   // --- Element references, grabbed once ---
   const elements = {
@@ -38,7 +39,8 @@ window.DartsTrainer = window.DartsTrainer || {};
 
     answerResult: document.getElementById('answer-result'),
     feedbackResult: document.getElementById('feedback-result'),
-    feedbackWorking: document.getElementById('feedback-working'),
+    feedbackUserAnswer: document.getElementById('feedback-user-answer'),
+    feedbackDarts: document.getElementById('feedback-darts'),
     feedbackTime: document.getElementById('feedback-time'),
 
     statAnswered: document.getElementById('stat-answered'),
@@ -225,29 +227,57 @@ window.DartsTrainer = window.DartsTrainer || {};
   });
 
   /**
-   * Renders the result of a checked answer. Practice mode only has
-   * one arithmetic step (add the 3 throws), so there's a single
-   * working line rather than the 501 game's addition+subtraction pair.
+   * Renders the result of a checked answer as a darts "visit
+   * recap": a headline (the correct total, always - even on a
+   * wrong answer, since that's the number the player most needs to
+   * read), a dimmed line underneath showing what the player
+   * actually typed (only on a wrong answer), the visit's darts as
+   * chips, and the visit time - see js/scoreResultUi.js for the
+   * shared DOM-building helpers this delegates to. Practice mode
+   * asks for the raw visit total, so that's what both the headline
+   * and the wrong-answer comparison are anchored to (contrast with
+   * ui.js's Track-mode version, which is anchored to the remaining
+   * score instead, since that's what THAT mode asks for).
    * @param {boolean} wasCorrect
    * @param {{throws: {notation: string, value: number}[], visitScore: number}} question
    * @param {number} timeTakenSeconds
+   * @param {string} userAnswer - The raw string the player submitted (only shown when wasCorrect is false).
    */
-  function renderFeedback(wasCorrect, question, timeTakenSeconds) {
-    elements.answerResult.className = wasCorrect
+  function renderFeedback(wasCorrect, question, timeTakenSeconds, userAnswer) {
+    const {
+      renderHeadline, renderUserAnswer, hideUserAnswer, renderDartsRow,
+      isMaximumVisit, appendMaximumBadge, formatVisitTime,
+    } = window.DartsTrainer.scoreResultUi;
+
+    const isMaximum = isMaximumVisit(question);
+
+    let className = wasCorrect
       ? 'answer-result answer-result--correct'
       : 'answer-result answer-result--incorrect';
+    if (isMaximum) className += ' answer-result--maximum';
+    // The correct-flash animation is layered on only for a correct
+    // answer (see the file header + task: no scale/flash on wrong
+    // answers) - a separate class rather than folding into
+    // --correct so a re-render (e.g. immediately re-showing this
+    // same box) can still re-trigger the animation deliberately if
+    // ever needed, without it being implied by every correct state.
+    if (wasCorrect) className += ' answer-result--correct-flash';
+    elements.answerResult.className = className;
 
-    elements.feedbackResult.textContent = wasCorrect ? 'Correct!' : 'Not quite';
+    renderHeadline(elements.feedbackResult, {
+      wasCorrect,
+      correctValue: question.visitScore,
+      correctUnitLabel: 'SCORED',
+      incorrectUnitLabel: 'Actual Visit:',
+    });
+    if (isMaximum) appendMaximumBadge(elements.feedbackResult);
 
-    // Plain singles (notation is just digits, e.g. "20") don't need
-    // their value spelled out - only doubles/trebles/bull (a letter
-    // prefix, e.g. "T20") get the "(value)" suffix.
-    const sumLine = question.throws
-      .map((t) => (/^\d+$/.test(t.notation) ? t.notation : `${t.notation} (${t.value})`))
-      .join(' + ');
-    elements.feedbackWorking.textContent = `${sumLine} = ${question.visitScore}`;
+    if (wasCorrect) hideUserAnswer(elements.feedbackUserAnswer);
+    else renderUserAnswer(elements.feedbackUserAnswer, userAnswer);
 
-    elements.feedbackTime.textContent = `Answered in ${timeTakenSeconds.toFixed(2)}s`;
+    renderDartsRow(elements.feedbackDarts, question.throws);
+
+    elements.feedbackTime.textContent = formatVisitTime(timeTakenSeconds);
 
     // Relabel the SAME Check button as "Next question" instead of
     // showing a separate button below (see ui.js for the rationale).

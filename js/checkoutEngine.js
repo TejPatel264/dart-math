@@ -166,34 +166,57 @@ window.DartsTrainer = window.DartsTrainer || {};
   }
 
   /**
-   * Ranks and dedupes a list of routes, returning the best `limit`
-   * (default 2) as the "most popular / best" suggestions.
-   *
-   * Routes are deduped by their SET of segments, not the exact
-   * sequence: [T19, T20, Bull] and [T20, T19, Bull] are the same
-   * three darts thrown in a different order, not two genuinely
-   * different routes, so only one survives here. This also means
-   * the alternative(s) returned are guaranteed to use a different
-   * combination of segments from the best route, rather than just
-   * a reordering of the same darts.
+   * Dedupes a list of routes by their SET of segments, not the
+   * exact sequence: [T19, T20, Bull] and [T20, T19, Bull] are the
+   * same three darts thrown in a different order, not two
+   * genuinely different routes, so only one survives here.
    * @param {DartOption[][]} routes
-   * @param {number} limit
    * @returns {DartOption[][]}
    */
-  function rankRoutes(routes, limit) {
-    // Dedupe by sorted notation (order-independent) so a route
-    // that only reorders the same darts as an already-seen route
-    // is dropped, keeping whichever ordering sorts first.
+  function dedupeRoutes(routes) {
     const seen = new Set();
-    const unique = routes.filter((route) => {
+    return routes.filter((route) => {
       const key = route.map((d) => d.notation).slice().sort().join('-');
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
+  }
 
-    unique.sort((a, b) => routeScore(a) - routeScore(b));
-    return unique.slice(0, limit);
+  /**
+   * Ranks already-deduped routes, returning the best `limit`
+   * (default 2) as the "most popular / best" suggestions. See
+   * routeScore() for the ranking criteria and dedupeRoutes() for
+   * why a caller would dedupe first.
+   * @param {DartOption[][]} routes
+   * @param {number} limit
+   * @returns {DartOption[][]}
+   */
+  function rankRoutes(routes, limit) {
+    return routes.slice().sort((a, b) => routeScore(a) - routeScore(b)).slice(0, limit);
+  }
+
+  /**
+   * Finds every legal route for a score within maxDarts, restricted
+   * to the SHORTEST dart count that actually works (a 2-dart 40
+   * shouldn't be crowded out by valid-but-pointless 3-dart paddings
+   * to the same score) - deduped by segment set but NOT yet ranked
+   * or truncated, so callers can search the full candidate pool
+   * (e.g. for a route containing a specific preferred double/treble)
+   * as well as just take the top N.
+   * @param {number} score
+   * @param {number} maxDarts - 1, 2, or 3
+   * @returns {DartOption[][]}
+   */
+  function findAllRoutes(score, maxDarts) {
+    if (!Number.isInteger(score) || score < MIN_SCORE || score > MAX_SCORE) return [];
+
+    let routes = [];
+    if (maxDarts >= 1) routes = routes.concat(findOneDartFinishes(score));
+    if (routes.length === 0 && maxDarts >= 2) routes = routes.concat(findTwoDartFinishes(score));
+    if (routes.length === 0 && maxDarts >= 3) routes = routes.concat(findThreeDartFinishes(score));
+
+    return dedupeRoutes(routes);
   }
 
   /**
@@ -205,19 +228,8 @@ window.DartsTrainer = window.DartsTrainer || {};
    * @returns {{checkoutPossible: boolean, routes: DartOption[][]}}
    */
   function getCheckoutRoutes(score, maxDarts, limit = 2) {
-    if (!Number.isInteger(score) || score < MIN_SCORE || score > MAX_SCORE) {
-      return { checkoutPossible: false, routes: [] };
-    }
-
-    let routes = [];
-    if (maxDarts >= 1) routes = routes.concat(findOneDartFinishes(score));
-    if (routes.length === 0 && maxDarts >= 2) routes = routes.concat(findTwoDartFinishes(score));
-    if (routes.length === 0 && maxDarts >= 3) routes = routes.concat(findThreeDartFinishes(score));
-
-    // If a shorter finish exists, prefer that dart count exclusively
-    // (a 2-dart 40 shouldn't be crowded out by valid-but-pointless
-    // 3-dart paddings to the same score).
-    const best = rankRoutes(routes, limit);
+    const all = findAllRoutes(score, maxDarts);
+    const best = rankRoutes(all, limit);
     return { checkoutPossible: best.length > 0, routes: best };
   }
 
@@ -225,5 +237,7 @@ window.DartsTrainer = window.DartsTrainer || {};
     MAX_SCORE,
     MIN_SCORE,
     getCheckoutRoutes,
+    findAllRoutes,
+    rankRoutes,
   };
 })();

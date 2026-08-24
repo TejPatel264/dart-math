@@ -25,7 +25,7 @@ window.DartsTrainer = window.DartsTrainer || {};
   // dart-land keyframes (see styles.css). Used to know when the
   // final dart's landing animation has actually finished, so the
   // timer doesn't start until the player can actually see it.
-  const DART_LAND_MS = 220;
+  const DART_LAND_MS = 300;
 
   // --- Element references, grabbed once ---
   const elements = {
@@ -38,7 +38,8 @@ window.DartsTrainer = window.DartsTrainer || {};
 
     answerResult: document.getElementById('answer-result'),
     feedbackResult: document.getElementById('feedback-result'),
-    feedbackWorking: document.getElementById('feedback-working'),
+    feedbackUserAnswer: document.getElementById('feedback-user-answer'),
+    feedbackDarts: document.getElementById('feedback-darts'),
     feedbackTime: document.getElementById('feedback-time'),
 
     statAnswered: document.getElementById('stat-answered'),
@@ -195,27 +196,45 @@ window.DartsTrainer = window.DartsTrainer || {};
   });
 
   /**
-   * Renders the result of a checked answer.
+   * Renders the result of a checked answer as a darts "visit
+   * recap" - see js/scoreResultUi.js for the shared DOM-building
+   * helpers this delegates to (same rendering as practiceUi.js;
+   * this page only differs in how the throws get revealed - a
+   * board rather than flip cards - not in how the result reads).
    * @param {boolean} wasCorrect
    * @param {{throws: {notation: string, value: number}[], visitScore: number}} question
    * @param {number} timeTakenSeconds
+   * @param {string} userAnswer - The raw string the player submitted (only shown when wasCorrect is false).
    */
-  function renderFeedback(wasCorrect, question, timeTakenSeconds) {
-    elements.answerResult.className = wasCorrect
+  function renderFeedback(wasCorrect, question, timeTakenSeconds, userAnswer) {
+    const {
+      renderHeadline, renderUserAnswer, hideUserAnswer, renderDartsRow,
+      isMaximumVisit, appendMaximumBadge, formatVisitTime,
+    } = window.DartsTrainer.scoreResultUi;
+
+    const isMaximum = isMaximumVisit(question);
+
+    let className = wasCorrect
       ? 'answer-result answer-result--correct'
       : 'answer-result answer-result--incorrect';
+    if (isMaximum) className += ' answer-result--maximum';
+    if (wasCorrect) className += ' answer-result--correct-flash';
+    elements.answerResult.className = className;
 
-    elements.feedbackResult.textContent = wasCorrect ? 'Correct!' : 'Not quite';
+    renderHeadline(elements.feedbackResult, {
+      wasCorrect,
+      correctValue: question.visitScore,
+      correctUnitLabel: 'SCORED',
+      incorrectUnitLabel: 'Actual Visit:',
+    });
+    if (isMaximum) appendMaximumBadge(elements.feedbackResult);
 
-    // Plain singles (notation is just digits, e.g. "20") don't need
-    // their value spelled out - only doubles/trebles/bull (a letter
-    // prefix, e.g. "T20") get the "(value)" suffix.
-    const sumLine = question.throws
-      .map((t) => (/^\d+$/.test(t.notation) ? t.notation : `${t.notation} (${t.value})`))
-      .join(' + ');
-    elements.feedbackWorking.textContent = `${sumLine} = ${question.visitScore}`;
+    if (wasCorrect) hideUserAnswer(elements.feedbackUserAnswer);
+    else renderUserAnswer(elements.feedbackUserAnswer, userAnswer);
 
-    elements.feedbackTime.textContent = `Answered in ${timeTakenSeconds.toFixed(2)}s`;
+    renderDartsRow(elements.feedbackDarts, question.throws);
+
+    elements.feedbackTime.textContent = formatVisitTime(timeTakenSeconds);
 
     setAnswered();
     setTimeout(() => elements.checkBtn.focus(), 0);

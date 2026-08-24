@@ -23,6 +23,7 @@
     if (!window.DartsTrainer.gameEngine) missing.push('js/gameEngine.js');
     if (!window.DartsTrainer.StatsTracker) missing.push('js/stats.js');
     if (!window.DartsTrainer.lifetimeStats) missing.push('js/lifetimeStats.js');
+    if (!window.DartsTrainer.scoreResultUi) missing.push('js/scoreResultUi.js');
     if (!window.DartsTrainer.dartboard) missing.push('js/dartboard.js');
     if (!window.DartsTrainer.gameBoardUi) missing.push('js/gameBoardUi.js');
   }
@@ -98,7 +99,7 @@
     lifetimeStats.recordAnswer('gameBoard', wasCorrect, timeTakenSeconds);
     if (wasCorrect) lifetimeStats.recordStreakProgress('gameBoard', stats.currentStreak);
     renderStats(stats);
-    renderFeedback(wasCorrect, currentQuestion, timeTakenSeconds);
+    renderFeedback(wasCorrect, currentQuestion, timeTakenSeconds, rawValue);
 
     hasAnsweredCurrentQuestion = true;
   }

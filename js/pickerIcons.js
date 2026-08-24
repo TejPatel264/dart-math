@@ -142,41 +142,44 @@ window.DartsTrainer = window.DartsTrainer || {};
   }
 
   /**
-   * A single dart, matching a real reference photo/icon: a thin
-   * needle point, two rounded barrel sections separated by a
-   * narrow grip band, a short shaft, and a flight made of two
-   * separate petal-shaped vanes that meet at the shaft (with a
-   * hairline gap between them, widening slightly toward their
-   * tips) rather than a single fused blob or a 3D cross-section.
-   * Drawn directly along a bottom-left-to-top-right diagonal axis
-   * (not built horizontally and rotated afterward), using a small
-   * "walk along the axis, offset perpendicular" coordinate helper
-   * so every part's position is expressed as "how far along the
-   * dart, how far to the side" rather than raw x/y pairs - this
-   * made it far easier to get the proportions right against the
-   * reference and keeps the shape easy to adjust later.
+   * A single dart: a thin needle point, two rounded barrel
+   * sections separated by a narrow grip band, a short shaft, and a
+   * swallowtail-style flight (one connected shape, narrow at the
+   * shaft and flaring to two points with a shallow V-notch cut
+   * into the trailing edge) - not a literal 3-4 vane cross-section,
+   * since that doesn't read cleanly at small sizes. Point faces
+   * the top-right, flight trails off to the bottom-left.
+   *
+   * Drawn directly along that diagonal axis (not built horizontally
+   * and rotated afterward), using a small "walk along the axis,
+   * offset perpendicular" coordinate helper so every part's
+   * position is expressed as "how far along the dart, how far to
+   * the side" rather than raw x/y pairs - this makes the whole
+   * shape easy to re-angle later (as happened once already) by
+   * changing a single ANGLE_DEG/TIP pair instead of recalculating
+   * every coordinate by hand.
    *
    * Built once as its own function (not inlined per-card) since a
    * good dart silhouette is generically useful anywhere else in
    * the app that wants one later (e.g. a favicon, a loading
    * indicator, other picker cards), not just the checkout quiz's
    * dart-count picker.
-   * @param {number} [y=0] - vertical offset for stacking multiple darts
+   * @param {number} [x=0] - horizontal offset for laying multiple darts side by side
    * @param {number} [scale=1] - uniform scale (around the icon's centre), for shrinking darts when several share one icon
    * @returns {string} a <g> element (not a standalone <svg>)
    */
-  function singleDart(y = 0, scale = 1) {
-    // The dart's own axis runs at -45deg (bottom-left to top-right).
-    // `along(t)` walks a distance t down that axis from the tip;
-    // `at(t, w)` is the point at distance t, offset w perpendicular
-    // to the axis (positive w = toward the upper-left side).
-    const ANGLE_DEG = -45;
+  function singleDart(x = 0, scale = 1) {
+    // The dart's own axis runs at 135deg, starting from the tip at
+    // the top-right corner and walking down-left. `along(t)` walks
+    // a distance t down that axis from the tip; `at(t, w)` is the
+    // point at distance t, offset w perpendicular to the axis.
+    const ANGLE_DEG = 135;
     const rad = (ANGLE_DEG * Math.PI) / 180;
     const ux = Math.cos(rad);
     const uy = Math.sin(rad);
     const px = -uy;
     const py = ux;
-    const TIP = [10, 54];
+    const TIP = [54, 10];
 
     function along(t) {
       return [TIP[0] + ux * t, TIP[1] + uy * t];
@@ -195,6 +198,7 @@ window.DartsTrainer = window.DartsTrainer || {};
     const T_BARREL2_START = 21.7; // the gap between the two barrel sections
     const T_BARREL2_END = 31.6;
     const T_SHAFT_END = 39.1;
+    const T_FLIGHT_END = 58;
 
     // Point: a thin needle tapering to a sharp tip.
     const pointD = `M ${fmt(at(0, 0))} L ${fmt(at(T_POINT_BASE, 0.9))} L ${fmt(at(T_POINT_BASE, -0.9))} Z`;
@@ -223,31 +227,22 @@ window.DartsTrainer = window.DartsTrainer || {};
       `M ${fmt(at(T_BARREL2_END, 1))} L ${fmt(at(T_SHAFT_END, 1))} ` +
       `L ${fmt(at(T_SHAFT_END, -1))} L ${fmt(at(T_BARREL2_END, -1))} Z`;
 
-    /** One flight petal/vane: narrow at the shaft, bulging to its widest, tapering to a point. */
-    function petal(tipT, tipW, wideT, wideW, sign) {
-      const baseT = T_SHAFT_END - 1;
-      const gap = 0.3 * sign;
-      return (
-        `M ${fmt(at(baseT, gap))} ` +
-        `Q ${fmt(at(wideT - 5, wideW * 0.85))} ${fmt(at(wideT, wideW))} ` +
-        `Q ${fmt(at(tipT - 2, wideW * 0.5))} ${fmt(at(tipT, tipW))} ` +
-        `L ${fmt(at(baseT + 1.5, gap))} Z`
-      );
-    }
-    // Petal A: the larger vane, sweeping toward the upper-left side
-    // of the axis (+w), curved outer edge. Petal B: slightly
-    // smaller and straighter-edged, sweeping toward the lower-right
-    // side (-w) - matching the reference's gentle asymmetry between
-    // the two visible vanes.
-    const flightAD = petal(61, 2, 49, 12, 1);
-    const flightBD =
-      `M ${fmt(at(T_SHAFT_END - 1, -0.3))} L ${fmt(at(45, -9.5))} L ${fmt(at(56, -4.5))} L ${fmt(at(T_SHAFT_END + 0.5, -0.3))} Z`;
+    // Flight: one connected swallowtail shape - narrow at the
+    // shaft, flaring out to two points at the back with a shallow
+    // V-notch cut into the trailing edge.
+    const flightHalfW = 6.5;
+    const notchDepth = 4;
+    const flightD =
+      `M ${fmt(at(T_SHAFT_END, 0.8))} ` +
+      `L ${fmt(at(T_FLIGHT_END, flightHalfW))} ` +
+      `L ${fmt(at(T_FLIGHT_END - notchDepth, 0))} ` +
+      `L ${fmt(at(T_FLIGHT_END, -flightHalfW))} ` +
+      `L ${fmt(at(T_SHAFT_END, -0.8))} Z`;
 
     return `
-      <g transform="translate(0 ${y})">
+      <g transform="translate(${x} 0)">
         <g transform="translate(32 32) scale(${scale}) translate(-32 -32)">
-          <path d="${flightAD}" fill="#B3272C" />
-          <path d="${flightBD}" fill="#B3272C" />
+          <path d="${flightD}" fill="#B3272C" />
           <path d="${shaftD}" fill="#1C1A15" />
           <path d="${barrel2D}" fill="#C7A34B" stroke="#8C6D2E" stroke-width="0.4" />
           <path d="${barrel1D}" fill="#C7A34B" stroke="#8C6D2E" stroke-width="0.4" />
@@ -259,26 +254,24 @@ window.DartsTrainer = window.DartsTrainer || {};
 
   /**
    * A group of 1-3 darts, used for the checkout quiz's dart-count
-   * picker cards ("1-Dart", "2-Dart", "3-Dart"). A single dart is
-   * shown full-size; 2 or 3 are shrunk and stacked vertically
-   * (rather than placed side by side) since the dart silhouette
-   * itself is quite wide once rotated - stacking is what keeps
-   * multiple darts legible in a 64x64 icon instead of overlapping
-   * into a smear.
+   * picker cards ("1-Dart", "2-Dart", "3-Dart") - laid out side by
+   * side (matching how multiple darts are conventionally shown
+   * together, like in a hand or a card back), shrunk just enough
+   * that they don't overlap given the dart's diagonal silhouette.
    * @param {number} count - 1, 2, or 3
    * @returns {string}
    */
   function dartGroup(count) {
     const LAYOUTS = {
-      1: { scale: 1, yStep: 0 },
-      2: { scale: 0.68, yStep: 16 },
-      3: { scale: 0.6, yStep: 14 },
+      1: { scale: 1, xStep: 0 },
+      2: { scale: 0.8, xStep: 15 },
+      3: { scale: 0.66, xStep: 14 },
     };
-    const { scale, yStep } = LAYOUTS[count] || LAYOUTS[1];
+    const { scale, xStep } = LAYOUTS[count] || LAYOUTS[1];
 
     const darts = Array.from({ length: count }, (_, i) => {
-      const y = (-(count - 1) / 2 + i) * yStep;
-      return singleDart(y, scale);
+      const x = (-(count - 1) / 2 + i) * xStep;
+      return singleDart(x, scale);
     }).join('');
 
     return `
@@ -307,10 +300,92 @@ window.DartsTrainer = window.DartsTrainer || {};
     `;
   }
 
+  /**
+   * A simple solid triangle arrow, pointing right by default,
+   * precisely centred in its 20x20 box by construction (unlike a
+   * Unicode arrow/triangle character, whose glyph metrics vary by
+   * font and are rarely centred in their own bounding box - that
+   * mismatch was the actual cause of the home-page back link and
+   * "Continue with X" badge both looking visually off-centre
+   * despite correct CSS centring on their containers). Used
+   * pointing right as-is for the Continue badge, and flipped via
+   * a CSS transform (scaleX(-1)) for the back-to-home link - one
+   * shape, one source of truth, instead of two different glyphs
+   * that each need their own manual centring.
+   * @returns {string}
+   */
+  function arrowTriangle() {
+    return `
+      <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 14 10 L 6 4 L 6 16 Z" fill="currentColor" />
+      </svg>
+    `;
+  }
+
+  /**
+   * A simple two-tone flame - a red outer teardrop shape (with a
+   * small flicker notch on one side, so it doesn't read as a
+   * perfectly symmetric raindrop) and a cream inner core - used to
+   * replace the play-streak banner's fire emoji on the Lifetime
+   * Stats page. Colours chosen for contrast against that banner's
+   * gold gradient background specifically (see .play-streak in
+   * styles.css) rather than currentColor, since red-on-gold and
+   * cream-on-gold both need to read clearly there and wouldn't
+   * necessarily if left to inherit an arbitrary text colour.
+   * @returns {string}
+   */
+  function flame() {
+    return `
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 32 4 C 40 16 46 24 44 34 C 43 42 37 48 32 48 C 22 48 16 40 17 30 C 17.5 25 20 21 23 18 C 21 24 22 29 25 31 C 24 22 27 12 32 4 Z" fill="#B3272C" />
+        <path d="M 30 22 C 34 28 37 32 36 37 C 35.5 41 32 44 29 44 C 24 44 21 40 21.5 35 C 21.8 32 23.5 29.5 25.5 28 C 24.8 31 25.5 33.5 27 35 C 26 30 27.5 26 30 22 Z" fill="#F3ECD8" />
+      </svg>
+    `;
+  }
+
+  /**
+   * A simple infinity loop (two crossed loops), used for the
+   * "Unlimited" game-length card on the picker pages - reads
+   * clearly at small size as "no limit" without needing a text
+   * label to explain it. currentColor so it matches whatever
+   * colour the card's own text/icon treatment already applies
+   * (including the dimmed opacity picker-card__icon uses when a
+   * card is unselected - see styles.css).
+   * @returns {string}
+   */
+  function infinity() {
+    return `
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 20 32 C 20 24 27 20 32 26 C 37 32 44 40 50 32 C 56 24 44 16 38 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+        <path d="M 44 32 C 44 24 37 20 32 26 C 27 32 20 40 14 32 C 8 24 20 16 26 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+      </svg>
+    `;
+  }
+
+  /**
+   * A plain clock face - two hands slightly off twelve so it
+   * doesn't read as a static/frozen glyph - for the "Timer" coming-
+   * soon card. currentColor throughout, same reasoning as
+   * infinity() above.
+   * @returns {string}
+   */
+  function clock() {
+    return `
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="4" />
+        <path d="M 32 20 L 32 33 L 41 38" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    `;
+  }
+
   window.DartsTrainer.pickerIcons = {
     flipCards,
     dartboard,
     dartGroup,
     statsChart,
+    arrowTriangle,
+    flame,
+    infinity,
+    clock,
   };
 })();

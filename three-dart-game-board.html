@@ -67,7 +67,7 @@
     </aside>
 
     <!-- Main trainer card: everything needed for one question lives here -->
-    <main class="trainer-card" id="trainer-card">
+    <main class="trainer-card trainer-card--fill" id="trainer-card">
 
       <div class="scoreboard">
         <div class="scoreboard__row">
@@ -102,8 +102,9 @@
              why. -->
         <div class="answer-result" id="answer-result" hidden>
           <p class="answer-result__headline" id="feedback-result"></p>
-          <p class="answer-result__working" id="feedback-addition"></p>
-          <p class="answer-result__working answer-result__working--emphasis" id="feedback-subtraction"></p>
+          <p class="answer-result__user-answer" id="feedback-user-answer" hidden></p>
+          <div class="answer-result__darts" id="feedback-darts"></div>
+          <p class="answer-result__progression" id="feedback-progression" hidden></p>
           <p class="answer-result__time" id="feedback-time"></p>
         </div>
       </form>
@@ -167,6 +168,7 @@
   <script src="js/stats.js" defer></script>
   <script src="js/lifetimeStats.js" defer></script>
   <script src="js/dartboard.js" defer></script>
+  <script src="js/scoreResultUi.js" defer></script>
   <script src="js/gameBoardUi.js" defer></script>
   <script src="js/gameBoardMain.js" defer></script>
   <script src="js/pickerIcons.js" defer></script>

@@ -11,7 +11,13 @@
  * This is the only script the home page loads, specifically
  * because everything else on the page is a plain <a href> that
  * works with zero JS - this one feature is inherently dynamic
- * (depends on stored data), so it's the one exception.
+ * (depends on stored data), so it's the one exception. (Well,
+ * almost the only one - pickerIcons.js/pickerIconsInit.js also
+ * load, to fill in the Continue button's arrow icon below; this
+ * script must run BEFORE pickerIconsInit.js so the icon's
+ * data-icon span already exists in the DOM by the time that
+ * script scans the page for them - see the <script> order in
+ * index.html.)
  * ---------------------------------------------------------
  */
 (function () {
@@ -45,7 +51,9 @@
   link.className = 'mode-button mode-button--continue';
   link.innerHTML = `
     <span class="mode-button__title">Continue with ${mostPlayed.label}</span>
-    <span class="mode-button__badge">▶</span>
+    <span class="mode-button__badge mode-button__badge--icon">
+      <span data-icon="arrowTriangle"></span>
+    </span>
   `;
 
   // Inserted at the top of the group (before the Lifetime Stats

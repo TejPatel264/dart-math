@@ -20,7 +20,8 @@
  *     "gameBoard":  { ... },
  *     ...
  *   },
- *   playStreak: { currentStreak, bestStreak, lastPlayedDate }
+ *   playStreak: { currentStreak, bestStreak, lastPlayedDate },
+ *   profile: { name, favoriteTrebles: [n, n], favoriteDoubles: [n, n] }
  * }
  * ---------------------------------------------------------
  */
@@ -37,8 +38,19 @@ window.DartsTrainer = window.DartsTrainer || {};
     { id: 'gameBoard', label: '3-Dart Game (Dartboard)', href: 'three-dart-game-board.html' },
     { id: 'practice', label: '3-Dart Practice', href: '3-dart-practice.html' },
     { id: 'practiceBoard', label: '3-Dart Practice (Dartboard)', href: '3-dart-practice-board.html' },
+    { id: 'streakPractice', label: '3-Dart Practice (Streak)', href: 'streak-practice.html' },
     { id: 'checkoutQuiz1Dart', label: '1-Dart Checkout Quiz', href: 'checkout-quiz.html' },
   ];
+
+  // Dartboard numbers run 1-20 - favourite trebles/doubles are
+  // always drawn from this range (no bull; a "favourite double"
+  // of bull is arguably meaningful but the profile keeps to plain
+  // numbers for now, consistent with how trebles have no bull
+  // equivalent at all).
+  const MIN_SEGMENT = 1;
+  const MAX_SEGMENT = 20;
+  const DEFAULT_FAVORITE_TREBLES = [20, 19];
+  const DEFAULT_FAVORITE_DOUBLES = [20, 16];
 
   function emptyModeStats() {
     return { questionsAnswered: 0, correctAnswers: 0, totalTimeSeconds: 0, bestStreak: 0 };
@@ -46,6 +58,29 @@ window.DartsTrainer = window.DartsTrainer || {};
 
   function emptyPlayStreak() {
     return { currentStreak: 0, bestStreak: 0, lastPlayedDate: null };
+  }
+
+  function defaultProfile() {
+    return {
+      name: '',
+      favoriteTrebles: DEFAULT_FAVORITE_TREBLES.slice(),
+      favoriteDoubles: DEFAULT_FAVORITE_DOUBLES.slice(),
+    };
+  }
+
+  /**
+   * Clamps a stored segment number back into 1-20, falling back to
+   * the given default if it's missing, non-numeric, or out of
+   * range - guards against a corrupted/hand-edited localStorage
+   * value quietly breaking the profile dropdowns.
+   * @param {*} value
+   * @param {number} fallback
+   * @returns {number}
+   */
+  function sanitizeSegment(value, fallback) {
+    const n = Number(value);
+    if (!Number.isInteger(n) || n < MIN_SEGMENT || n > MAX_SEGMENT) return fallback;
+    return n;
   }
 
   /**
@@ -114,7 +149,21 @@ window.DartsTrainer = window.DartsTrainer || {};
       lastPlayedDate: (storedPlayStreak && storedPlayStreak.lastPlayedDate) || null,
     };
 
-    return { modes, playStreak };
+    const storedProfile = parsed && parsed.profile;
+    const defaults = defaultProfile();
+    const profile = {
+      name: typeof (storedProfile && storedProfile.name) === 'string' ? storedProfile.name : defaults.name,
+      favoriteTrebles: [
+        sanitizeSegment(storedProfile && storedProfile.favoriteTrebles && storedProfile.favoriteTrebles[0], defaults.favoriteTrebles[0]),
+        sanitizeSegment(storedProfile && storedProfile.favoriteTrebles && storedProfile.favoriteTrebles[1], defaults.favoriteTrebles[1]),
+      ],
+      favoriteDoubles: [
+        sanitizeSegment(storedProfile && storedProfile.favoriteDoubles && storedProfile.favoriteDoubles[0], defaults.favoriteDoubles[0]),
+        sanitizeSegment(storedProfile && storedProfile.favoriteDoubles && storedProfile.favoriteDoubles[1], defaults.favoriteDoubles[1]),
+      ],
+    };
+
+    return { modes, playStreak, profile };
   }
 
   function writeAll(data) {
@@ -239,20 +288,78 @@ window.DartsTrainer = window.DartsTrainer || {};
     return stats.totalTimeSeconds / stats.questionsAnswered;
   }
 
-  /** Wipes lifetime stats for every mode AND the play streak back to zero. */
+  /** Wipes lifetime stats for every mode AND the play streak back to zero. The profile (name, favourite trebles/doubles) is untouched - it's account info, not a stat, so a stats reset shouldn't silently clear it too. */
   function resetAll() {
-    writeAll({ modes: {}, playStreak: emptyPlayStreak() });
+    const all = readAll();
+    writeAll({ modes: {}, playStreak: emptyPlayStreak(), profile: all.profile });
   }
 
-  /** Wipes lifetime stats for a single mode back to zero (play streak untouched). */
+  /** Wipes lifetime stats for a single mode back to zero (play streak and profile untouched). */
   function resetMode(modeId) {
     const all = readAll();
     all.modes[modeId] = emptyModeStats();
     writeAll(all);
   }
 
+  /** @returns {{name:string, favoriteTrebles:[number,number], favoriteDoubles:[number,number]}} */
+  function getProfile() {
+    return readAll().profile;
+  }
+
+  /**
+   * Updates the player's display name.
+   * @param {string} name
+   */
+  function setName(name) {
+    const all = readAll();
+    all.profile.name = String(name).slice(0, 40); // generous but bounded, in case of paste-in garbage
+    writeAll(all);
+  }
+
+  /**
+   * Sets one of the two favourite treble numbers (index 0 or 1).
+   * If the given number matches the OTHER slot, the two are swapped
+   * instead of ending up as a duplicate - e.g. favourites are
+   * [20, 19] and the player sets slot 0 to 19: slot 1 becomes 20
+   * rather than both slots reading 19. This keeps the pair always
+   * distinct without the UI needing to reject the input outright.
+   * @param {0|1} index
+   * @param {number} segment - A whole number from 1-20.
+   */
+  function setFavoriteTreble(index, segment) {
+    setFavoriteSegment('favoriteTrebles', index, segment);
+  }
+
+  /**
+   * Sets one of the two favourite double numbers (index 0 or 1).
+   * Same swap-on-duplicate behaviour as setFavoriteTreble.
+   * @param {0|1} index
+   * @param {number} segment - A whole number from 1-20.
+   */
+  function setFavoriteDouble(index, segment) {
+    setFavoriteSegment('favoriteDoubles', index, segment);
+  }
+
+  /** Shared implementation for setFavoriteTreble/setFavoriteDouble - see their docs above. */
+  function setFavoriteSegment(profileKey, index, segment) {
+    const all = readAll();
+    const clean = sanitizeSegment(segment, all.profile[profileKey][index]);
+    const otherIndex = index === 0 ? 1 : 0;
+
+    if (all.profile[profileKey][otherIndex] === clean) {
+      // Duplicate - swap instead of clobbering, so both slots stay
+      // meaningful (see setFavoriteTreble's doc comment).
+      all.profile[profileKey][otherIndex] = all.profile[profileKey][index];
+    }
+    all.profile[profileKey][index] = clean;
+
+    writeAll(all);
+  }
+
   window.DartsTrainer.lifetimeStats = {
     MODES,
+    MIN_SEGMENT,
+    MAX_SEGMENT,
     recordAnswer,
     recordStreakProgress,
     getModeStats,
@@ -263,5 +370,9 @@ window.DartsTrainer = window.DartsTrainer || {};
     averageTimeSeconds,
     resetAll,
     resetMode,
+    getProfile,
+    setName,
+    setFavoriteTreble,
+    setFavoriteDouble,
   };
 })();

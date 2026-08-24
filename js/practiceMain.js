@@ -25,6 +25,7 @@
     if (!window.DartsTrainer.gameEngine) missing.push('js/gameEngine.js');
     if (!window.DartsTrainer.StatsTracker) missing.push('js/stats.js');
     if (!window.DartsTrainer.lifetimeStats) missing.push('js/lifetimeStats.js');
+    if (!window.DartsTrainer.scoreResultUi) missing.push('js/scoreResultUi.js');
     if (!window.DartsTrainer.practiceUi) missing.push('js/practiceUi.js');
   }
 
@@ -101,7 +102,7 @@
     lifetimeStats.recordAnswer('practice', wasCorrect, timeTakenSeconds);
     if (wasCorrect) lifetimeStats.recordStreakProgress('practice', stats.currentStreak);
     renderStats(stats);
-    renderFeedback(wasCorrect, currentQuestion, timeTakenSeconds);
+    renderFeedback(wasCorrect, currentQuestion, timeTakenSeconds, rawValue);
 
     hasAnsweredCurrentQuestion = true;
   }

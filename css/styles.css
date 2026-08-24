@@ -14,6 +14,7 @@
   --color-ink-dim: #6E6555;
 
   --color-red: #B3272C;           /* dartboard red segment */
+  --color-red-dark: #8C1E22;
   --color-green: #0F6B45;         /* dartboard green segment */
   --color-green-dark: #0B5136;
   --color-gold: #C7A34B;          /* brass wire */
@@ -191,6 +192,36 @@ input {
   white-space: nowrap;
 }
 
+/* Streak stat flash - plays once per correct answer during the
+   brief pause between questions (see js/streakMain.js), so the
+   streak count going up is felt without needing the full
+   calculation/feedback screen every time. Re-triggered by the JS
+   removing and re-adding this class (a bare class toggle wouldn't
+   restart the animation on consecutive correct answers). Zooms up
+   and shifts to a bright green - a lighter tint than the app's
+   usual --color-green, which is tuned for light card backgrounds
+   and reads as muddy/low-contrast against the stats-bar's dark
+   background - then settles back to its normal size/colour. */
+@keyframes stat-value-flash {
+  0% {
+    transform: scale(1);
+    color: var(--color-chalk);
+  }
+  35% {
+    transform: scale(1.45);
+    color: #4ADE80;
+  }
+  100% {
+    transform: scale(1);
+    color: var(--color-chalk);
+  }
+}
+
+.stat__value--flash {
+  display: inline-block;
+  animation: stat-value-flash 0.5s ease;
+}
+
 /* =========================================================
    HOME LINK - small "back to home" button in the game page
    header. Icon-only to stay out of the way of the compact
@@ -214,6 +245,18 @@ input {
 
 .home-link:hover {
   background: rgba(243, 236, 216, 0.15);
+}
+
+/* The arrow icon itself (see js/pickerIcons.js's arrowTriangle) -
+   flipped to point left via scaleX(-1) since the shared icon
+   points right by default. Precisely centred by construction
+   (see that function's comment for why this replaced a Unicode
+   arrow character, which wasn't). */
+.home-link__icon {
+  display: flex;
+  width: 15px;
+  height: 15px;
+  transform: scaleX(-1);
 }
 
 /* =========================================================
@@ -321,6 +364,28 @@ input {
   border-radius: 999px;
 }
 
+/* Variant for a badge holding an icon (the Continue button's
+   arrow - see js/continuePrompt.js) instead of text - flex-centres
+   the icon properly, since the base rule above only pads around
+   text and was never centring a glyph the way this needs. Circular
+   rather than pill-shaped, sized to comfortably fit the icon with
+   even padding on all sides. */
+.mode-button__badge--icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.mode-button__badge--icon [data-icon] {
+  display: flex;
+  width: 12px;
+  height: 12px;
+}
+
 /* Small inline icon inside a button's title (currently just the
    Lifetime Stats button's bar-chart glyph, replacing what used to
    be an emoji) - sized to sit on the text baseline rather than as
@@ -332,6 +397,27 @@ input {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Stacked title: used where a button also carries a short
+   description underneath its name (currently just COUNT/TRACK -
+   see index.html) - the name stays the same size/weight as a
+   plain .mode-button__title, the description sits below it, small
+   and dim, so the row still reads primarily as its name at a
+   glance with the description as secondary supporting detail. */
+.mode-button__title--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.mode-button__description {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--color-ink-dim);
 }
 
 .mode-button__icon {
@@ -480,6 +566,198 @@ input {
 }
 
 /* =========================================================
+   SETUP PICKER - the combined "choose View + Game Mode, then
+   Play" screen (game-picker.html, practice-picker.html). This
+   replaces the old flow of tapping straight through to a plain
+   two-option picker page: both choices now live on one screen as
+   selectable state, with a single Play button at the bottom
+   committing to whatever's currently highlighted, rather than
+   every tap being an immediate navigation.
+
+   Three stacked zones inside the fill-height trainer-card, sized
+   by flex-grow against a shared 100-unit budget so the ~30/60/10
+   split holds proportionally across viewport heights: View (30),
+   Game Mode (60), Play (10) - dividers and gaps take their real
+   space on top rather than being carved out of that budget, which
+   is what keeps this simpler than juggling exact percentages.
+   ========================================================= */
+.setup-picker {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.setup-picker__view {
+  flex: 30 1 0;
+  display: flex;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.setup-picker__modes {
+  flex: 60 1 0;
+  display: flex;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+/* Unlabelled rule directly above the Play button - separates the
+   button from the card choices above it without needing a repeat
+   of the "Game Mode" label so close to the button it's for. */
+.setup-picker__play-divider {
+  flex: 0 0 auto;
+}
+
+.setup-picker__play {
+  flex: 0 0 auto;
+}
+
+/* --- View selector: Flip Cards / Dartboard, side by side --- *
+   Selectable variant of .picker-card - same shape/hover language,
+   but toggles into a highlighted "selected" look (red, sized
+   larger than its sibling - see the flex-basis rules below and
+   js/setupPicker.js) instead of navigating anywhere when tapped,
+   since the choice is staged for the Play button rather than
+   acted on immediately. */
+.setup-card {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(28, 26, 21, 0.35);
+  background: #FFFFFF;
+  color: var(--color-ink);
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: flex-grow 0.25s ease, transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.setup-card:hover {
+  background: var(--color-surface-dim);
+}
+
+.setup-card:active {
+  transform: scale(0.98);
+}
+
+.setup-card--selected {
+  background: var(--color-red);
+  border-color: var(--color-red-dark);
+  color: var(--color-chalk);
+}
+
+.setup-card--selected:hover {
+  background: var(--color-red-dark);
+}
+
+.setup-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-ink);
+}
+
+.setup-card--selected .setup-card__icon {
+  color: var(--color-chalk);
+}
+
+.setup-card__title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+/* --- Game Mode selector: Unlimited / Timer / Streak, side by
+   side. Same selected-state language as .setup-card above; Timer
+   and Streak are real disabled <button>s (not links to nowhere),
+   same "not built yet" pattern as .picker-card--disabled
+   elsewhere - dimmed icon, badge instead of relying on colour
+   alone. --- */
+.setup-card--mode {
+  padding: var(--space-2) 6px;
+}
+
+.setup-card--mode .setup-card__icon {
+  width: 34px;
+  height: 34px;
+}
+
+.setup-card--mode .setup-card__title {
+  font-size: 0.95rem;
+}
+
+.setup-card--disabled {
+  border-color: rgba(28, 26, 21, 0.12);
+  color: var(--color-ink-dim);
+  cursor: not-allowed;
+}
+
+.setup-card--disabled:hover {
+  background: #FFFFFF;
+}
+
+.setup-card--disabled .setup-card__icon {
+  color: var(--color-ink-dim);
+  opacity: 0.35;
+}
+
+.setup-card__badge {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  background: var(--color-surface-dim);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+/* --- Play button: pinned to the bottom of the card, same green
+   primary language as .btn--primary elsewhere. Always has a valid
+   destination the moment the page loads, since Game Mode and View
+   both come pre-selected (Unlimited, Flip Cards - see
+   js/setupPicker.js), so there's no disabled state to design for
+   here. --- */
+.setup-play-btn {
+  width: 100%;
+  padding: 15px 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-green);
+  color: var(--color-chalk);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.setup-play-btn:hover {
+  background: var(--color-green-dark);
+}
+
+.setup-play-btn:active {
+  transform: scale(0.98);
+}
+
+/* =========================================================
    LIFETIME STATS BUTTON - same white/radius-md button shape as
    everything else above, but gold, so "view my progress" still
    reads as a distinct kind of action from "start playing".
@@ -516,17 +794,31 @@ input {
 /* Fills the remaining height below the header (the .app flex
    column already spans the full viewport via body's default
    stretch behavior - this just tells the card to claim that space
-   rather than shrink-wrap its content), used on pages that are
-   fundamentally "a short list of big choices" - the home page and
-   the variant-picker pages - so the buttons read as a complete,
-   deliberately composed screen instead of a short stack with dead
-   space below it on taller viewports. */
+   rather than shrink-wrap its content). Used on every fixed,
+   single-screen page in the app - the home page, the variant-
+   picker pages, and every gameplay screen (Practice, Track, Beat
+   the Referee, Checkout Quiz, Checkout Calculator, in both their
+   flip-card and dartboard forms) - so the content reads as a
+   complete, deliberately composed screen instead of a short stack
+   with dead space below it on taller viewports. The one deliberate
+   exception is Lifetime Stats, which is a naturally scrolling page
+   (profile, play streak, per-mode stats list) rather than a fixed
+   single screen, so it keeps the plain shrink-wrapped .trainer-card
+   instead. */
 .trainer-card--fill {
   flex: 1;
-  /* Spaces the divider/button groups out evenly across the extra
-     room this creates, rather than leaving them clustered at the
-     top with a dead gap underneath - so "fill the page" actually
-     means the content occupies the space, not just an empty card. */
+  /* Spaces the page's top-level sections out evenly across the
+     extra room this creates, rather than leaving them clustered at
+     the top with a dead gap underneath - so "fill the page" means
+     the content occupies the space, not just an empty card. Applies
+     equally well whether a page has a handful of big buttons (the
+     picker pages) or a mix of a scoreboard/throws/prompt/numpad
+     (the gameplay pages) - and since hidden elements ([hidden] is
+     display:none throughout this app) don't count as flex
+     children, this also automatically re-balances itself as a
+     page's own content toggles - e.g. Beat the Referee's intro vs.
+     live-play vs. run-over states, or the Checkout Calculator's
+     results area only appearing once a score's been checked. */
   justify-content: space-evenly;
 }
 
@@ -607,7 +899,7 @@ input {
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0.2, 0.2, 1);
 }
 
 .throw-square--revealed .throw-square__inner {
@@ -644,6 +936,276 @@ input {
 .throw-square--treble .throw-square__face--back {
   color: var(--color-red);
   border-color: rgba(179, 39, 44, 0.35);
+}
+
+/* =========================================================
+   STREAK MODE - question countdown + end-of-run screen.
+   Streak mode reuses practice mode's whole DOM/CSS (throw
+   squares, answer form, numpad, answer-result) as-is; these
+   rules only add what's unique to it: a per-question countdown
+   and a full-card "run over" state. See js/streakUi.js /
+   js/streakMain.js.
+   ========================================================= */
+
+/* --- Referee intro: shown full-focus for the first 3 seconds of a
+   run, before settling into the compact Target cell in .streak-live
+   below. Sits where .throws/.prompt would otherwise be, so nothing
+   shifts position when this is swapped out for them (see
+   js/streakMain.js). Given the same visual weight as .streak-over -
+   this is meant to feel like a real opening beat, not a caption. --- */
+.referee-intro {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: var(--space-3) var(--space-2);
+  animation: feedback-in 0.2s ease;
+}
+
+.referee-intro[hidden] {
+  display: none;
+}
+
+.referee-intro__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.referee-intro__line {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.25;
+  color: var(--color-ink);
+  max-width: 26ch;
+}
+
+.referee-intro__value {
+  font-size: 1.7em;
+  color: var(--color-red);
+}
+
+.referee-intro__question {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-ink-dim);
+}
+
+/* --- Live Target/Streak/Timer: sits directly above the throw
+   squares (same spot "This visit" occupies in Unlimited practice),
+   since all three numbers are scoped to the run in progress the
+   same way that label is scoped to the current visit. Three cells
+   side by side with plain vertical dividers between them,
+   [Target | Streak | Timer] - the numbers that actually change
+   moment to moment during play belong next to the thing creating
+   the pressure (the countdown), not buried in the stats bar above,
+   which now only holds slower-moving, whole-day figures (see
+   .stats-bar's Best/Avg Time/Accuracy). Hidden (not just at 0)
+   while a question's darts are still being revealed - the
+   countdown genuinely doesn't start until the last one lands, so
+   showing a ticking value before that would misrepresent when the
+   clock actually begins (see startNewQuestion in js/streakMain.js);
+   Target and Streak hide alongside it purely to keep the trio
+   moving as one unit. Also stays hidden during .referee-intro above
+   - the Target cell here is this same number's settled, compact
+   home once that intro fades. --- */
+.streak-live {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 3px 0 1px;
+}
+
+.streak-live[hidden] {
+  display: none;
+}
+
+.streak-live__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.streak-live__divider {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(28, 26, 21, 0.15);
+}
+
+.streak-live__value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.15s ease;
+}
+
+.streak-live__label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+/* Last 3 seconds: same red the treble throws already use, so
+   "running out" borrows a colour meaning ("danger/hot") the app
+   has already established rather than introducing a new one.
+   Scoped to the Timer cell only (:last-of-type) - the streak
+   number isn't what's running out, so it stays neutral. */
+.streak-live--urgent .streak-live__cell:last-of-type .streak-live__value {
+  color: var(--color-red);
+}
+
+/* Paused after an answer is checked - dimmed to plain ink-dim
+   rather than red/black, so it reads as "on hold", distinct from
+   both "counting normally" and "about to run out". Scoped to the
+   Timer cell only, same reasoning as --urgent above. */
+.streak-live--paused .streak-live__cell:last-of-type .streak-live__value {
+  color: var(--color-ink-dim);
+}
+
+/* --- Streak-over screen: replaces the whole trainer-card content
+   (throws/prompt/form/numpad all hidden) with a single full-card
+   result, since there's nothing left to interact with mid-run
+   once it's ended - same reasoning as .checkout-result__impossible
+   getting its own prominent treatment rather than reusing the
+   compact answer-result box, just bigger since this is the whole
+   screen's content now, not a slot inside a still-active form. --- */
+.streak-over {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: var(--space-2) var(--space-2) 0;
+  animation: feedback-in 0.2s ease;
+}
+
+.streak-over[hidden] {
+  display: none;
+}
+
+.streak-over__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-red);
+}
+
+.streak-over__value {
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  line-height: 1;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.streak-over__label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  margin-bottom: 2px;
+}
+
+.streak-over__detail {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--color-ink-dim);
+}
+
+/* Win/draw/loss line against the referee's target - colour-coded
+   the same way correct/incorrect answers already are elsewhere
+   (green for beating it, red for losing to it), so the result
+   reads at a glance without needing to parse the wording. A draw
+   gets the neutral ink colour, since it's neither. */
+.streak-over__referee-result {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.streak-over__referee-result[hidden] {
+  display: none;
+}
+
+.streak-over__referee-result--win {
+  color: var(--color-green);
+}
+
+.streak-over__referee-result--loss {
+  color: var(--color-red);
+}
+
+.streak-over__referee-result--draw {
+  color: var(--color-ink);
+}
+
+.streak-over__play-again {
+  margin-top: 4px;
+  width: 100%;
+  padding: 13px 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-green);
+  color: var(--color-chalk);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.streak-over__play-again:hover {
+  background: var(--color-green-dark);
+}
+
+.streak-over__play-again:active {
+  transform: scale(0.98);
+}
+
+/* --- Compact calculation box for the end-of-run screen only: the
+   streak-over screen now always appears directly below this (both
+   ways a run can end - wrong answer or timeout - show the
+   calculation, see js/streakMain.js), so the two need to share the
+   card's height rather than either assuming it has the whole card
+   to itself. Overrides sit here (not on the shared .answer-result
+   rules) so Unlimited practice's use of the same class elsewhere
+   is untouched. */
+.answer-result--compact {
+  flex: 0 0 auto;
+  padding: 5px var(--space-2);
+  gap: 0;
+}
+
+.answer-result--compact .answer-result__headline {
+  font-size: 0.9rem;
+}
+
+.answer-result--compact .answer-result__working--emphasis {
+  font-size: 0.62rem;
+}
+
+.answer-result--compact .answer-result__time {
+  font-size: 0.55rem;
 }
 
 /* =========================================================
@@ -726,20 +1288,20 @@ input {
 
 /* Dart marker: gold reads reasonably against every segment color
    (cream, black, red, green), with a dark outline for definition
-   and a small pop-in so each landing feels distinct. */
+   and a bigger pop-in overshoot so each landing feels distinct. */
 .dartboard-dart {
   fill: var(--color-gold);
   stroke: var(--color-ink);
   stroke-width: 0.6;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
-  animation: dart-land 0.22s ease-out;
+  animation: dart-land 0.3s ease-out;
   transform-box: fill-box;
   transform-origin: center;
 }
 
 @keyframes dart-land {
   from { transform: scale(0); }
-  60% { transform: scale(1.3); }
+  60% { transform: scale(1.8); }
   to { transform: scale(1); }
 }
 
@@ -754,12 +1316,26 @@ input {
 /* --- Answer form ---
    Row layout even on mobile (not just >=600px): since the numpad
    handles entry, keeping input + Check side-by-side saves a full
-   row of height compared to stacking them. */
+   row of height compared to stacking them.
+
+   min-height is set to comfortably fit the TALLEST content that
+   ever appears here - a Track-mode WRONG answer (headline + the
+   dimmed "you answered..." line + darts + score progression +
+   visit time, 5 stacked rows, the most any state ever shows) - so
+   swapping between the plain input and any other state (correct,
+   incorrect, Practice, Track) never changes the row's own height.
+   Without this, the card visibly grew/shrank as an answer was
+   checked, since the result box's multi-line content is naturally
+   taller than the single-line input it replaces. Every shorter
+   state simply centres within this same reserved height
+   (.answer-result already has justify-content: center) rather than
+   getting its own smaller min-height. */
 .answer-form {
   display: flex;
   flex-direction: row;
   gap: var(--space-2);
   align-items: stretch;
+  min-height: 124px;
 }
 
 .answer-form__input {
@@ -1031,12 +1607,18 @@ input {
 
 .checkout-route {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: 6px;
   padding: var(--space-3);
   background: #FFFFFF;
   border: 2px solid rgba(28, 26, 21, 0.12);
   border-radius: var(--radius-md);
+}
+
+.checkout-route__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .checkout-route__rank {
@@ -1072,6 +1654,26 @@ input {
   color: var(--color-chalk);
 }
 
+/* Preference note - shown when this route happens to use one of
+   the player's favourite doubles/trebles (see js/lifetimeStats.js's
+   profile and js/checkoutCalculatorMain.js's matching logic).
+   Sits below the dart chips rather than competing with the rank
+   label for the same line, since a player's name can run long.
+   Gold rather than green/red - this isn't a correctness signal
+   (right/wrong), it's a personalised aside, so it borrows the
+   app's "special/brass" colour instead of the pass/fail ones. */
+.checkout-route__preference {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  color: var(--color-gold);
+  padding-left: 56px; /* aligns under the dart chips, past the 44px rank column + its gap */
+}
+
+.checkout-route__preference[hidden] {
+  display: none;
+}
+
 /* --- Answer result ---
    Replaces the plain answer-form__input in place once a question
    has been checked, instead of a separate feedback block further
@@ -1089,7 +1691,7 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 4px;
   border-radius: var(--radius-md);
   border: 2px solid;
   padding: 6px var(--space-2);
@@ -1126,7 +1728,7 @@ input {
 .answer-result__headline {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.3rem;
   letter-spacing: 0.01em;
   line-height: 1.1;
 }
@@ -1139,9 +1741,123 @@ input {
   color: var(--color-red);
 }
 
+/* What the player actually typed, shown as a dimmed line directly
+   under the headline when they got it wrong (hidden entirely on a
+   correct answer - see js/scoreResultUi.js's renderUserAnswer/
+   hideUserAnswer). Deliberately subtle: the headline above already
+   carries the correct answer, which is the number that matters
+   most here - this line is just context for what was typed, sized
+   and coloured well below the headline so the two don't compete. */
+.answer-result__user-answer {
+  margin: 2px 0 0;
+  color: var(--color-ink-dim);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.62rem;
+  letter-spacing: 0.01em;
+}
+
+.answer-result__user-answer[hidden] {
+  display: none;
+}
+
+/* --- Dart chips: reused from the checkout calculator's
+   .checkout-route__chip language (see styles.css's CHECKOUT
+   CALCULATOR section) so a visit's darts read the same way there
+   as they do here. The numeric value (60, 20, 57...) is the
+   visually prominent part - it's the number that actually feeds
+   into the maths, so it leads - with the dart notation (T20, D16,
+   Bull...) tucked underneath in smaller/lighter text, showing
+   where that value came from. --- */
+.answer-result__darts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.answer-result__dart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-surface-dim);
+}
+
+.answer-result__dart-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--color-ink);
+}
+
+.answer-result__dart-notation {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--color-ink-dim);
+  margin-top: 1px;
+}
+
+/* Treble darts get the same red-segment callout the throw squares
+   themselves use (.throw-square--treble), so a visit built from
+   trebles is recognisable as such at a glance here too. Applied to
+   the notation line (T20) rather than the value, since the value
+   (60) is shared with plenty of non-treble combinations and isn't
+   itself what signals "this was a treble". */
+.answer-result__dart--treble .answer-result__dart-notation {
+  color: var(--color-red);
+}
+
+/* --- Track mode's score progression: replaces the old subtraction
+   line (401 - 137 = 264) with a left-to-right "before -> after"
+   read, matching how a scoreboard actually updates rather than
+   presenting it as a maths problem to solve a second time. The
+   arrow is the whole point - a lighter weight than the numbers on
+   either side of it so it reads as motion, not another value. --- */
+.answer-result__progression {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+}
+
+.answer-result__progression[hidden] {
+  display: none;
+}
+
+.answer-result__progression-from {
+  font-size: 0.68rem;
+  color: var(--color-ink-dim);
+}
+
+.answer-result__progression-arrow {
+  font-size: 0.68rem;
+  color: var(--color-ink-dim);
+}
+
+.answer-result__progression-to {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.answer-result__progression-label {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  align-self: center;
+}
+
 /* Working-out line(s) - e.g. the addition/subtraction steps, or
    which dart actually finishes the checkout. Kept small since up
-   to two of these can appear in the same compact box. */
+   to two of these can appear in the same compact box. Still used
+   by the checkout quiz page, which this task doesn't touch. */
 .answer-result__working {
   margin: 0;
   color: var(--color-ink-dim);
@@ -1163,9 +1879,162 @@ input {
   color: var(--color-ink-dim);
 }
 
+.answer-result__time::before {
+  content: '⚡ ';
+}
+
+/* --- 180: a small, restrained callout for the maximum possible
+   visit - not a new colour language, just gold (the app's existing
+   "special" accent - see the profile/lifetime-stats gold usages)
+   picked up on the border and headline, and a compact badge next
+   to the score. Applies regardless of correct/incorrect, since it
+   describes the VISIT itself, not whether the player's answer was
+   right - see js/scoreResultUi.js's isMaximumVisit. --- */
+.answer-result--maximum {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 1px rgba(199, 163, 75, 0.35);
+}
+
+.answer-result--maximum .answer-result__headline {
+  color: var(--color-gold);
+}
+
+.answer-result__maximum-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-gold);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* --- Correct-answer flash: a brief scale-up on the whole box,
+   layered on top of feedback-in's existing fade/slide-in rather
+   than replacing it. Correct-only (see js/scoreResultUi.js) - an
+   incorrect answer keeps just the plain fade-in, no scale, so the
+   celebratory feel stays reserved for actually getting it right.
+
+   No colour flash - .answer-result--correct's own green
+   background/border already carries the "correct" signal, so the
+   scale alone is the animation.
+
+   1.08 (not the more obvious 1.2) because the box is already
+   effectively full-width inside .trainer-card (flex:1 in
+   .answer-form) - scaling from centre in both directions would
+   push a materially wider box against the card's own padding.
+   1.08 is calculated to stay inside that padding on realistic
+   phone widths; transform-origin below further confines the
+   vertical growth to the space above the box (throws/prompt),
+   growing away from the numpad rather than into it. */
+@keyframes answer-result-correct-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.answer-result--correct-flash {
+  transform-origin: center bottom;
+  animation: feedback-in 0.18s ease, answer-result-correct-pulse 0.4s ease-out;
+}
+
 /* =========================================================
    LIFETIME STATS PAGE
    ========================================================= */
+
+/* --- Player profile: name + favourite trebles/doubles, the first
+   thing on the page. Plain white card language (like .answer-form__input)
+   rather than the gold/dark treatments used further down - this is
+   a form, not a stat display, so it should read like one. --- */
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-surface-dim);
+  border: 1px solid rgba(28, 26, 21, 0.12);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.profile__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+  margin-bottom: 4px;
+}
+
+.profile__name-input {
+  width: 100%;
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.18);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  padding: 9px var(--space-2);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile__name-input:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(199, 163, 75, 0.18);
+  outline: none;
+}
+
+.profile__name-input::placeholder {
+  color: var(--color-ink-dim);
+  opacity: 0.7;
+}
+
+.profile__favorites {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.profile__favorite-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile__select-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Plain native <select> - a full custom dropdown isn't worth
+   building for "pick 1-20 twice", and native selects already get
+   a big, easy-to-hit tap target on mobile for free. Styled just
+   enough (border/radius/font) to feel like it belongs next to
+   .profile__name-input rather than looking like a bare browser
+   default. */
+.profile__select {
+  flex: 1;
+  min-width: 0;
+  background: #FFFFFF;
+  border: 2px solid rgba(28, 26, 21, 0.18);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 8px 4px;
+  text-align: center;
+  text-align-last: center; /* Firefox needs this separately to centre the selected value, not just the option list */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile__select:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(199, 163, 75, 0.18);
+  outline: none;
+}
 
 /* --- Play Streak banner: consecutive days played, any mode.
    Deliberately styled apart from the summary/mode-card stats
@@ -1190,8 +2059,12 @@ input {
 }
 
 .play-streak__flame {
-  font-size: 2rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .play-streak__current-text {
@@ -1544,8 +2417,28 @@ input {
   .stats-bar .stat__value {
     font-size: 0.72rem;
   }
+  .answer-form {
+    min-height: 100px;
+  }
   .answer-result {
     padding: 4px var(--space-2);
+    gap: 2px;
+  }
+  .answer-result__headline {
+    font-size: 1.1rem;
+  }
+  .answer-result__user-answer {
+    font-size: 0.56rem;
+    margin-top: 1px;
+  }
+  .answer-result__dart {
+    padding: 2px 6px;
+  }
+  .answer-result__dart-value {
+    font-size: 0.7rem;
+  }
+  .answer-result__progression-to {
+    font-size: 0.85rem;
   }
 
   /* --- Checkout quiz: the D/T + 1-20 + Bull/Clear keypad is the
@@ -1591,6 +2484,61 @@ input {
     padding: 4px 10px;
     font-size: 0.85rem;
   }
+  .checkout-route__preference {
+    font-size: 0.6rem;
+    padding-left: 50px;
+  }
+
+  /* --- Setup picker: trim card padding/icon size and the Play
+     button's height so all three zones plus both dividers still
+     fit above the fold on a short phone. --- */
+  .setup-card {
+    padding: var(--space-2) 6px;
+  }
+  .setup-card__icon {
+    width: 34px;
+    height: 34px;
+  }
+  .setup-card--mode .setup-card__icon {
+    width: 26px;
+    height: 26px;
+  }
+  .setup-card__title {
+    font-size: 0.95rem;
+  }
+  .setup-card--mode .setup-card__title {
+    font-size: 0.82rem;
+  }
+  .setup-play-btn {
+    padding: 12px 0;
+    font-size: 1.15rem;
+  }
+
+  /* --- Streak mode: tighter live streak/countdown + end screen to
+     match the rest of this breakpoint's savings. --- */
+  .streak-live {
+    gap: 8px;
+  }
+  .streak-live__value {
+    font-size: 1.25rem;
+  }
+  .streak-over__value {
+    font-size: 2.25rem;
+  }
+  .streak-over__play-again {
+    padding: 10px 0;
+    font-size: 1.1rem;
+  }
+  .referee-intro {
+    gap: 5px;
+    padding: var(--space-2);
+  }
+  .referee-intro__line {
+    font-size: 1.15rem;
+  }
+  .referee-intro__question {
+    font-size: 0.78rem;
+  }
 }
 
 /* Very short viewports (small phones with browser chrome visible)
@@ -1615,7 +2563,61 @@ input {
     padding: 5px 0;
     font-size: 0.9rem;
   }
+  .answer-form {
+    min-height: 97px;
+  }
   .answer-result__headline {
     font-size: 1rem;
+  }
+  .answer-result__user-answer {
+    font-size: 0.52rem;
+    margin-top: 1px;
+  }
+  .streak-live {
+    padding: 1px 0;
+    gap: 8px;
+  }
+  .streak-live__value {
+    font-size: 1.1rem;
+  }
+  .streak-over {
+    gap: 4px;
+    padding: var(--space-1) var(--space-2) 0;
+  }
+  .streak-over__eyebrow {
+    font-size: 0.56rem;
+  }
+  .streak-over__value {
+    font-size: 1.9rem;
+  }
+  .streak-over__label {
+    margin-bottom: 0;
+  }
+  .streak-over__play-again {
+    margin-top: 2px;
+    padding: 9px 0;
+    font-size: 1.05rem;
+  }
+  .streak-over__referee-result {
+    font-size: 0.62rem;
+  }
+  .answer-result--compact {
+    padding: 3px var(--space-2);
+  }
+  .answer-result--compact .answer-result__headline {
+    font-size: 0.8rem;
+  }
+  .referee-intro {
+    gap: 4px;
+    padding: var(--space-1) var(--space-2);
+  }
+  .referee-intro__eyebrow {
+    font-size: 0.6rem;
+  }
+  .referee-intro__line {
+    font-size: 1rem;
+  }
+  .referee-intro__question {
+    font-size: 0.72rem;
   }
 }

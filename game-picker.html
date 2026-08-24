@@ -40,27 +40,66 @@
     </header>
 
     <!--
-      Picker page: this game has two equally-valid ways to see the
-      throws (flip-cards or a real dartboard), and switching is a
-      once-per-session decision, not something anyone does mid-
-      question - so it gets its own screen rather than a home-page
-      pill or an in-game toggle (which would need disabling for
-      most of every question anyway). Stacked vertically so it
-      reads well on a phone and scales cleanly if a 3rd variant
-      ever shows up.
+      Setup picker: this game has two equally-valid ways to see
+      the throws (flip-cards or a real dartboard) plus a choice of
+      game length, both staged as selection state on one screen
+      rather than navigating on first tap - see js/setupPicker.js.
+      Unlimited is auto-selected on load (it's the only live mode
+      today), so the Play button is always ready to go - no
+      disabled state to wait out. See practice-picker.html for the
+      COUNT equivalent.
     -->
     <main class="trainer-card trainer-card--fill" id="picker-card">
-      <div class="picker-cards">
-        <a href="three-dart-game.html" class="picker-card">
-          <span class="picker-card__icon" data-icon="flipCards"></span>
-          <span class="picker-card__title">Flip Cards</span>
-          <span class="picker-card__description">Three squares flip to reveal each throw - quick and minimal.</span>
-        </a>
-        <a href="three-dart-game-board.html" class="picker-card">
-          <span class="picker-card__icon" data-icon="dartboard"></span>
-          <span class="picker-card__title">Dartboard</span>
-          <span class="picker-card__description">Each throw lands on a real dartboard - see exactly where it hit.</span>
-        </a>
+      <div class="setup-picker">
+
+        <div class="mode-divider" role="separator">
+          <span class="mode-divider__label">Game Mode</span>
+        </div>
+
+        <div class="setup-picker__modes">
+          <button
+            type="button"
+            class="setup-card setup-card--mode"
+            data-mode-href="three-dart-game.html"
+            data-mode-href-board="three-dart-game-board.html"
+            data-mode-default="true"
+          >
+            <span class="setup-card__icon" data-icon="infinity"></span>
+            <span class="setup-card__title">Unlimited</span>
+          </button>
+          <button type="button" class="setup-card setup-card--mode setup-card--disabled" disabled>
+            <span class="setup-card__icon" data-icon="clock"></span>
+            <span class="setup-card__title">Timer</span>
+            <span class="setup-card__badge">Coming soon</span>
+          </button>
+          <button type="button" class="setup-card setup-card--mode setup-card--disabled" disabled>
+            <span class="setup-card__icon" data-icon="flame"></span>
+            <span class="setup-card__title">Streak</span>
+            <span class="setup-card__badge">Coming soon</span>
+          </button>
+        </div>
+
+        <div class="mode-divider" role="separator">
+          <span class="mode-divider__label">View</span>
+        </div>
+
+        <div class="setup-picker__view">
+          <button type="button" class="setup-card" data-view="flipCards" data-view-default="true">
+            <span class="setup-card__icon" data-icon="flipCards"></span>
+            <span class="setup-card__title">Flip Cards</span>
+          </button>
+          <button type="button" class="setup-card" data-view="dartboard">
+            <span class="setup-card__icon" data-icon="dartboard"></span>
+            <span class="setup-card__title">Dartboard</span>
+          </button>
+        </div>
+
+        <div class="setup-picker__play-divider mode-divider" role="separator" aria-hidden="true"></div>
+
+        <div class="setup-picker__play">
+          <a href="#" id="setup-play-btn" class="setup-play-btn">Play</a>
+        </div>
+
       </div>
     </main>
 
@@ -68,5 +107,6 @@
 
   <script src="js/pickerIcons.js" defer></script>
   <script src="js/pickerIconsInit.js" defer></script>
+  <script src="js/setupPicker.js" defer></script>
 </body>
 </html>
