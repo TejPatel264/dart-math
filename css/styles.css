@@ -43,6 +43,15 @@
    ========================================================= */
 * {
   box-sizing: border-box;
+  /* Removes the default blue/grey tap-highlight flash mobile
+     browsers apply to any tappable element on touch (distinct from
+     :focus-visible below, which is deliberately kept for keyboard
+     users) - this app already gives its own tap feedback via each
+     component's own :active state (e.g. .numpad__key:active,
+     .setup-card:active), so the browser's default highlight just
+     doubles up as an extra, less-intentional-looking flash on top
+     of it. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -68,13 +77,21 @@ body {
      functional benefit, so it's been removed - this fade-in is
      the cosmetic piece worth keeping since it's free: it runs
      while the browser is already busy loading the page, rather
-     than adding time on top.) */
+     than adding time on top. Paired with js/prefetch.js hinting
+     likely next pages ahead of time, and js/*.bundle.js cutting
+     the number of separate script requests each page needs, so
+     the arrival this eases into is also genuinely quicker than it
+     used to be, not just dressed up to feel that way. Matches
+     .answer-result's own arrival animation (see feedback-in
+     below) - a small upward drift alongside the fade, rather than
+     opacity alone, since that's already the app's established
+     language for "new content arriving".) */
   animation: page-fade-in 0.25s ease;
 }
 
 @keyframes page-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 button {
@@ -240,11 +257,15 @@ input {
   color: var(--color-chalk);
   font-size: 1rem;
   text-decoration: none;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.08s ease;
 }
 
 .home-link:hover {
   background: rgba(243, 236, 216, 0.15);
+}
+
+.home-link:active {
+  transform: scale(0.92);
 }
 
 /* The arrow icon itself (see js/pickerIcons.js's arrowTriangle) -

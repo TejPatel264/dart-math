@@ -6,6 +6,15 @@
   <title>Dart Maths Trainer</title>
   <link rel="stylesheet" href="css/styles.css" />
 
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#17140F" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Dart Maths" />
+
   <!-- Google Fonts loaded non-render-blockingly: preload the
        stylesheet in the background, then swap it in via onload.
        The page renders immediately on the CSS system-font
@@ -139,11 +148,24 @@
     inherently dynamic data that can't be baked into static HTML;
     pickerIcons.js/pickerIconsInit.js render the small stats-chart
     icon on the Lifetime Stats button the same declarative way the
-    picker pages render theirs (see those files).
+    picker pages render theirs (see those files). prefetch.js warms
+    every mode-button's destination in the background - there's no
+    selection state to narrow it down to just one on this page (see
+    js/setupPicker.js for where prefetching gets more targeted, once
+    the player's actually chosen a mode), so all of them get hinted.
   -->
   <script src="js/lifetimeStats.js" defer></script>
   <script src="js/continuePrompt.js" defer></script>
-  <script src="js/pickerIcons.js" defer></script>
-  <script src="js/pickerIconsInit.js" defer></script>
+  <script src="js/pickerIcons.bundle.js" defer></script>
+  <script src="js/prefetch.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!window.DartsTrainer || !window.DartsTrainer.prefetchPage) return;
+      document.querySelectorAll('.mode-menu a[href]').forEach((link) => {
+        window.DartsTrainer.prefetchPage(link.getAttribute('href'));
+      });
+    });
+  </script>
+  <script src="js/pwaRegister.js" defer></script>
 </body>
 </html>

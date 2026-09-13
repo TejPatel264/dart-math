@@ -112,6 +112,13 @@
       : modeCard.dataset.modeHref;
 
     playBtn.href = href;
+
+    // Prefetch whatever Play currently points to, so by the time
+    // the player actually taps it, the page (and its own script
+    // bundles) are already in the browser's cache - re-targets
+    // automatically as the player tries different Game Mode/View
+    // combinations before committing (see js/prefetch.js).
+    if (window.DartsTrainer.prefetchPage) window.DartsTrainer.prefetchPage(href);
   }
 
   viewCards.forEach((card) => {
