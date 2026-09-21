@@ -60,7 +60,28 @@ html, body {
 }
 
 body {
-  min-height: 100dvh;
+  /* height (not just min-height): a fixed-height page's content is
+     built to sum to EXACTLY the viewport via flex distribution
+     (.app's flex column -> .trainer-card--fill's flex:1) - that
+     only works out precisely if body itself has a definite height
+     to stretch/distribute against, not just a floor. A min-height
+     lets body's real height come from its content instead in some
+     browsers, which is the class of bug behind "the page scrolls
+     by a few px even though everything should fit" - especially
+     likely to surface in a PWA's standalone display mode, which
+     has no address bar to size against at all. overflow-y stays
+     auto (not hidden) so genuinely long content - Lifetime Stats,
+     which is deliberately NOT a fixed single screen - can still
+     scroll normally; every fixed-height page just has nothing left
+     to scroll once its own height is unambiguous.
+
+     100dvh over 100vh for the same standalone-mode reason: dvh
+     tracks the ACTUAL visible viewport as browser chrome shows/
+     hides, where 100vh in some browsers instead uses the LARGEST
+     possible viewport (chrome hidden) even while chrome is
+     currently showing, overshooting the real usable height. */
+  height: 100dvh;
+  overflow-y: auto;
   background:
     radial-gradient(circle at 50% -10%, rgba(199, 163, 75, 0.10), transparent 45%),
     var(--color-bg);
@@ -121,10 +142,24 @@ input {
 .app {
   width: 100%;
   max-width: 460px;
-  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* env(safe-area-inset-*) resolves to 0 on any browser/device
+     without a notch/home-indicator to avoid (and is simply ignored
+     pre-fallback on browsers that don't support env() at all,
+     since the plain 10px/12px value right before it in each line
+     is what applies then) - so this is a no-op everywhere except
+     genuinely where it's needed: a PWA in standalone mode on an
+     iPhone, where the OS would otherwise let this app's own
+     content sit directly under the status bar / behind the home
+     indicator instead of just visually behind them. Requires
+     viewport-fit=cover in the <meta name="viewport"> tag on every
+     page - see index.html - since env() only resolves to a real
+     inset value when the page has opted into drawing under the
+     safe areas in the first place; without it every env() call
+     below is 0 and this rule is identical to a flat padding. */
+  padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
 }
 
 /* --- Header: home-link + title. The stats bar used to live here
@@ -828,6 +863,17 @@ input {
    instead. */
 .trainer-card--fill {
   flex: 1;
+  /* min-height:0 overrides the flex item default of min-height:auto,
+     which otherwise refuses to let this card shrink below its own
+     content's natural height even with flex:1/flex-shrink:1 set -
+     without this override, a page whose content is even slightly
+     taller than the viewport pushes .app (and so body) taller too,
+     instead of the card itself absorbing that overflow via its own
+     overflow:hidden (see .trainer-card) the way it's meant to. This
+     is what actually stops a fixed single-screen page from ever
+     scrolling, working together with body's own height:100dvh (not
+     min-height) - see that rule's comment for the fuller picture. */
+  min-height: 0;
   /* Spaces the page's top-level sections out evenly across the
      extra room this creates, rather than leaving them clustered at
      the top with a dead gap underneath - so "fill the page" means
